@@ -55,7 +55,11 @@ tests/                ← testes técnicos (sem custo de API)
    ```
    O resultado sai em `relatorio_avaliacao.md`.
 
-## Passo 2 · Colocar no ar (Railway)
+## Passo 2 · Colocar no ar (Railway ou Render)
+
+No Render: New → Web Service → repositório Oi, Language Docker, Branch `orya-whatsapp-bot`, Root Directory `orya-whatsapp-bot`, plano Starter, as mesmas variáveis abaixo mais `DATA_DIR=/data`, disco de 1 GB em `/data` e Health Check Path `/`.
+
+No Railway:
 
 1. Em https://railway.com: **New Project → Deploy from GitHub repo** → escolha este repositório e, em *Settings → Root Directory*, coloque `orya-whatsapp-bot`.
 2. Em **Variables**, cole as variáveis do `.env.example` (no mínimo `ANTHROPIC_API_KEY` e `PAINEL_SENHA`).

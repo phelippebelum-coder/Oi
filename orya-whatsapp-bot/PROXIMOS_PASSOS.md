@@ -3,11 +3,11 @@
 ## Pronto
 - Código completo nesta pasta (branch `orya-whatsapp-bot`): webhook da Meta, cérebro com o roteiro SDR da ORYA, ficha/categorização, agenda, passagem para a equipe, lembretes, follow-up, página de teste (`/teste`), painel (`/painel`) e teste automático de qualidade (`avaliar.py`).
 - 29 testes técnicos passando. O formato da chamada ao Claude foi conferido.
-- Ainda NÃO testado com o Claude de verdade (faltava a chave da API).
+- No ar no Render (aurora-orya, plano Starter, disco em /data) e testado com o Claude de verdade na página /teste em 28/10: aprovado.
 
 ## Próximo passo: testar na página de teste
 1. Criar a API key em console.anthropic.com (com créditos).
-2. Subir no Railway: repositório **Oi**, branch `orya-whatsapp-bot`, Root Directory `orya-whatsapp-bot`; variáveis `ANTHROPIC_API_KEY` e `PAINEL_SENHA`; volume em `/data`; gerar domínio.
+2. Hospedagem: Render (Railway estava com cadastros bloqueados). Web Service Docker, branch `orya-whatsapp-bot`, Root Directory `orya-whatsapp-bot`, Starter, disco 1 GB em `/data`, health check `/`.
 3. Abrir `https://SEU-DOMINIO/teste`, conversar como cliente e mandar as conversas pro Claude ajustar o tom.
 
 ## Atualizado (28/10)
@@ -55,7 +55,6 @@
 
 ## Informações que faltam (Phelippe)
 - [ ] TROCAR a senha da conta Google da ORYA (foi enviada no chat)
-- [ ] Chave da API do Claude + conta no Railway (primeiro teste real)
 - [ ] Conta de serviço do Google Agenda + senha de app do Gmail (README, Passo 4)
 - [ ] Preencher `materiais/tabela_precos_orya.xlsx` e devolver
 - [ ] ID do conjunto de dados (Pixel) da ORYA no Gerenciador de Eventos do Meta (conversão "agendou")
