@@ -204,6 +204,12 @@ def test_rotas_http(monkeypatch):
         r = cli.post("/api/importar-clientes", json={"csv": "telefone,nome,ultimo_procedimento\n11999998888,Maria Souza,toxina"})
         assert r.json() == {"importados": 1}
         assert db.obter_contato("5511999998888")["tipo"] == "cliente"
+        r = cli.post("/api/importar-leads", json={"csv": "telefone,nome,interesse,resumo,ultima_msg_cliente,ultima_msg_equipe,etapa\n"
+                                                  '11988887777,Bia,botox,"Quer botox, sumiu",24/10/2026 09:26,27/10/2026 10:33,2'})
+        assert r.json() == {"importados": 1, "erros": []}
+        lead = db.obter_contato(db.resolver_telefone_br("5511988887777"))
+        assert lead["followups_enviados"] == 2 and lead["ficha"]["nome"] == "Bia"
+        assert lead["ultima_msg_bot_em"] > lead["ultima_msg_cliente_em"]
         monkeypatch.setattr(config, "PAINEL_SENHA", "s3")
         assert cli.get("/painel").status_code == 401
         assert cli.get("/painel", auth=("orya", "s3")).status_code == 200

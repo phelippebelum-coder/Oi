@@ -79,6 +79,9 @@
     <p>Cole uma lista de clientes que já são da ORYA (CSV com cabeçalho). Quando elas mandarem mensagem, o bot reconhece como cliente de retorno e já fala de manutenção.</p>
     <textarea id="csv" rows="10" style="width:100%" placeholder="telefone,nome,ultimo_procedimento,data_ultimo_procedimento&#10;11999998888,Maria Souza,toxina,2026-06-10"></textarea>
     <p><button class="acao" id="btnImp">Importar</button> <span id="impRes"></span></p>
+    <hr><p><b>Leads que conversaram antes da Aurora</b>: ela assume os follow-ups a partir daqui. <i>etapa</i> = quantos follow-ups a equipe já fez (0 a 5) ou <i>mensal</i> para só as ofertas do mês. Datas no formato 28/10/2026 15:23.</p>
+    <textarea id="csvLeads" rows="10" style="width:100%" placeholder="telefone,nome,interesse,resumo,ultima_msg_cliente,ultima_msg_equipe,etapa&#10;11999998888,Ana,preenchimento labial,&quot;Perguntou valor de 1 ml, não respondeu&quot;,26/10/2026 17:38,27/10/2026 09:36,1"></textarea>
+    <p><button class="acao" id="btnLeads">Importar leads</button> <span id="leadsRes"></span></p>
     <hr><p>Exportar todos os contatos (nome, e-mail, WhatsApp e categoria) para usar no e-mail marketing:</p>
     <p><a class="acao" style="text-decoration:none;display:inline-block" href="/api/exportar.csv">Baixar CSV</a></p>
   </section>
@@ -211,6 +214,13 @@ $('#lerTodos').onclick = async () => { await fetch('/api/avisos/lidos', { method
 $('#btnImp').onclick = async () => {
   const r = await fetch('/api/importar-clientes', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ csv: $('#csv').value }) });
   const d = await r.json(); $('#impRes').textContent = r.ok ? `${d.importados} clientes importados.` : 'Erro na importação.';
+};
+
+$('#btnLeads').onclick = async () => {
+  const r = await fetch('/api/importar-leads', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ csv: $('#csvLeads').value }) });
+  const d = await r.json();
+  $('#leadsRes').textContent = r.ok ? `${d.importados} leads importados.${d.erros.length ? ' Erros: ' + d.erros.join('; ') : ''}` : 'Erro na importação.';
+  carregar();
 };
 
 async function carregar() {

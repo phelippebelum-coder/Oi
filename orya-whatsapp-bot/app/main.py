@@ -7,7 +7,7 @@ import io
 import logging
 import secrets
 from contextlib import asynccontextmanager
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, PlainTextResponse
@@ -329,3 +329,57 @@ async def importar_clientes(imp: Importacao):
         db.atualizar_contato(tel, tipo="cliente", ficha=ficha)
         total += 1
     return {"importados": total}
+
+
+def _data_br(texto: str | None) -> datetime | None:
+    """Aceita 28/10/2026 15:23, 28/10/2026 ou ISO."""
+    texto = (texto or "").strip()
+    if not texto:
+        return None
+    for formato in ("%d/%m/%Y %H:%M", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(texto, formato).replace(tzinfo=config.TZ)
+        except ValueError:
+            pass
+    d = datetime.fromisoformat(texto)
+    return d if d.tzinfo else d.replace(tzinfo=config.TZ)
+
+
+@app.post("/api/importar-leads", dependencies=[Depends(autenticar)])
+async def importar_leads(imp: Importacao):
+    """Leads que conversaram antes da Aurora entrar; ela assume a cadência de follow-up.
+    CSV com cabeçalho: telefone,nome,interesse,resumo,ultima_msg_cliente,ultima_msg_equipe,etapa
+    etapa = quantos follow-ups a equipe já fez (0 a 5) ou "mensal" para só as ofertas do mês."""
+    total, erros = 0, []
+    for n, linha in enumerate(csv.DictReader(io.StringIO(imp.csv.strip())), start=2):
+        tel = "".join(ch for ch in (linha.get("telefone") or "") if ch.isdigit())
+        if not tel:
+            continue
+        if len(tel) <= 11:
+            tel = "55" + tel
+        try:
+            cli_em, equipe_em = _data_br(linha.get("ultima_msg_cliente")), _data_br(linha.get("ultima_msg_equipe"))
+        except ValueError:
+            erros.append(f"linha {n}: data inválida")
+            continue
+        cli_em = cli_em or equipe_em or db.agora()
+        bot_em = max(cli_em, equipe_em or cli_em)
+        etapa = (linha.get("etapa") or "0").strip().lower()
+        enviados = len(config.FOLLOWUP_DIAS) if etapa == "mensal" else int(etapa) if etapa.isdigit() else 0
+        tel = db.resolver_telefone_br(tel)
+        c = db.garantir_contato(tel, "whatsapp")
+        ficha = dict(c["ficha"])
+        if nome := (linha.get("nome") or "").strip():
+            ficha.setdefault("nome", nome.split(" ")[0])
+        if interesse := (linha.get("interesse") or "").strip():
+            ficha["interesses"] = sorted(set(ficha.get("interesses", [])) | {interesse})
+        if resumo := (linha.get("resumo") or "").strip():
+            ficha["resumo_conversa"] = f"(conversa anterior à Aurora, feita pela equipe) {resumo}"
+        ficha.setdefault("como_conheceu", "anúncio do Instagram")
+        status = c["status"] if c["status"] in ("agendado", "opt_out") else "em_conversa"
+        db.atualizar_contato(tel, ficha=ficha, status=status, temperatura="fria" if enviados >= 3 else "morna",
+                             followups_enviados=enviados, bot_pausado_ate=None,
+                             ultima_msg_cliente_em=cli_em.isoformat(), ultima_msg_bot_em=bot_em.isoformat())
+        db.registrar_conversa(tel, "equipe", f"[importado] {resumo or interesse}")
+        total += 1
+    return {"importados": total, "erros": erros}
