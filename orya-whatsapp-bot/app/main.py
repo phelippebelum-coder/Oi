@@ -28,6 +28,11 @@ async def ciclo(_: FastAPI):
     if not config.PAINEL_SENHA:
         log.warning("PAINEL_SENHA vazio: painel e página de teste estão abertos. Defina uma senha em produção.")
     tarefa = asyncio.create_task(rotinas.laco())
+    if whatsapp.configurado():
+        try:
+            await whatsapp.assinar_waba()
+        except Exception:
+            log.exception("Não consegui assinar a WABA")
     yield
     tarefa.cancel()
 
@@ -86,6 +91,12 @@ class MsgTeste(BaseModel):
     nome: str | None = None
     cliente_retorno: bool = False
     anuncio: str | None = None
+
+
+@app.get("/api/whatsapp/status", dependencies=[Depends(autenticar)])
+async def whatsapp_status():
+    """Reassina o app na WABA e mostra o estado do número."""
+    return await whatsapp.assinar_waba()
 
 
 @app.get("/teste", dependencies=[Depends(autenticar)])

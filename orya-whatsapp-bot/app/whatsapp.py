@@ -42,6 +42,22 @@ async def _post(payload: dict) -> dict:
     return r.json()
 
 
+async def assinar_waba() -> dict:
+    """Liga o app à conta do WhatsApp (subscribed_apps). Sem isso a Meta não entrega mensagens reais."""
+    if not (config.WHATSAPP_TOKEN and config.WABA_ID):
+        return {"ok": False, "motivo": "WABA_ID ou WHATSAPP_TOKEN vazio"}
+    async with httpx.AsyncClient(timeout=20) as cli:
+        r = await cli.post(_url(f"{config.WABA_ID}/subscribed_apps"), headers=_headers())
+        lista = await cli.get(_url(f"{config.WABA_ID}/subscribed_apps"), headers=_headers())
+        numero = await cli.get(_url(config.WHATSAPP_PHONE_NUMBER_ID), headers=_headers(),
+                               params={"fields": "display_phone_number,verified_name,status,quality_rating"})
+    if r.status_code >= 400:
+        log.error("Erro ao assinar a WABA %s: %s", r.status_code, r.text)
+    else:
+        log.info("App assinado na WABA %s: %s", config.WABA_ID, lista.text)
+    return {"assinatura": r.json(), "apps_assinados": lista.json(), "numero": numero.json()}
+
+
 async def enviar_texto(para: str, texto: str) -> dict:
     return await _post({
         "messaging_product": "whatsapp",
