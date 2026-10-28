@@ -75,7 +75,8 @@ FERRAMENTAS = [
         "name": "agendar_avaliacao",
         "description": (
             "Agenda a avaliação com a Dra. Danielly no horário que a cliente escolheu (precisa ter vindo de "
-            "ver_horarios). Antes, ela precisa saber o valor da avaliação e a regra de falta."
+            "ver_horarios). Antes, ela precisa saber o valor da avaliação e a regra de falta. Também agenda direto a "
+            "sessão de Lavieen (sem avaliação), com o procedimento_interesse indicando a sessão."
         ),
         "input_schema": {
             "type": "object",
