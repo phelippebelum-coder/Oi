@@ -53,6 +53,17 @@
 - Pagamento vencido: só avisa a equipe (não cancela sozinho). Plano anual: R$ 3.080 em qualquer forma.
 - Planilha para preencher os preços: `materiais/tabela_precos_orya.xlsx`.
 
+## NO AR no WhatsApp oficial (28/10)
+- App "Aurora ORYA" publicado na Meta, webhook `https://aurora-orya.onrender.com/webhook` (messages + echoes).
+- Número oficial +55 11 2959-3266: phone id 1291567380699182, WABA 1204872868495909 (aurora-bot com acesso total).
+- A Aurora assina o app na WABA sozinha ao iniciar; conferir em `/api/whatsapp/status`.
+
+## Próximos passos
+- [ ] Forma de pagamento na Meta (WhatsApp Manager) para enviar modelos.
+- [ ] Criar e aprovar os modelos: follow-ups (d1, d3, d7, d15, d30, mensal VIP), lembrete, pagamento e aviso à equipe; preencher `FOLLOWUP_TEMPLATES` e `TEMPLATE_*` no Render.
+- [ ] Senha de app do Gmail (SMTP_*) para os e-mails e relatório diário.
+- [ ] Conta de serviço do Google Agenda.
+
 ## Informações que faltam (Phelippe)
 - [ ] TROCAR a senha da conta Google da ORYA (foi enviada no chat)
 - [ ] Conta de serviço do Google Agenda + senha de app do Gmail (README, Passo 4)
@@ -61,7 +72,3 @@
 - [ ] Fotos de antes e depois, fotos da Dra./clínica, promoções do mês, lista de clientes antigas (opcionais)
 - [ ] Confirmar: sábado 8h-18h e avaliação de 30 min (padrões atuais)
 
-## Depois de aprovar o comportamento
-- Ligar no WhatsApp: Meta Business verificado, app no Meta for Developers, número (11) 2959-3266 em coexistência, webhook com `messages` e `smb_message_echoes` (passo a passo no README).
-- Criar os templates de lembrete e de aviso à equipe.
-- Opcional: integração com o Google Agenda e evento de conversão "agendou" para os anúncios.
