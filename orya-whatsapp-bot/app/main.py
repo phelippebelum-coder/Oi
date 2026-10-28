@@ -48,6 +48,12 @@ async def saude():
     return {"ok": True, "whatsapp_configurado": whatsapp.configurado(), "modelo": config.CLAUDE_MODEL}
 
 
+@app.get("/privacidade")
+async def privacidade():
+    """Política de privacidade pública (exigida pela Meta para publicar o app)."""
+    return FileResponse(ESTATICO / "privacidade.html")
+
+
 # ---------- webhook do Meta ----------
 
 @app.get("/webhook")

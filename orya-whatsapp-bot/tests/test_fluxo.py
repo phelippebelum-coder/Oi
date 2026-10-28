@@ -199,6 +199,7 @@ def test_rotas_http(monkeypatch):
         assert r.text == "123"
         assert cli.get("/webhook", params={"hub.mode": "subscribe", "hub.verify_token": "x"}).status_code == 403
         assert cli.get("/teste").status_code == 200
+        assert "LGPD" in cli.get("/privacidade").text
         assert cli.get("/painel").status_code == 200
         r = cli.post("/api/importar-clientes", json={"csv": "telefone,nome,ultimo_procedimento\n11999998888,Maria Souza,toxina"})
         assert r.json() == {"importados": 1}
