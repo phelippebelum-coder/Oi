@@ -73,7 +73,15 @@ function idTel() { return 'teste-' + $('#tel').value.replace(/[^a-z0-9]/gi, '').
 function bolha(autor, texto, hora) {
   const d = document.createElement('div');
   d.className = 'msg ' + autor;
-  d.textContent = texto;
+  const foto = /^\[foto:([a-z_]+)\]$/.exec(texto || '');
+  if (foto) {
+    const img = document.createElement('img');
+    img.src = '/api/antes-depois/' + foto[1]; img.style.cssText = 'max-width:240px;border-radius:6px;display:block';
+    img.onerror = () => { d.textContent = '[foto de antes e depois: ' + foto[1] + ']'; };
+    d.appendChild(img);
+  } else {
+    d.textContent = texto;
+  }
   if (hora) { const s = document.createElement('small'); s.textContent = new Date(hora).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) + (autor === 'equipe' ? ' · equipe' : ''); d.appendChild(s); }
   chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
 }

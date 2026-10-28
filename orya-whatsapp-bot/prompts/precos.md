@@ -10,7 +10,8 @@ O bot só informa o que estiver aqui. O que tiver [PREENCHER] ou não estiver na
 - Valor: R$ 200.
 - O valor é 100% abatido de qualquer procedimento que ela fechar (ou seja, se fechar, a avaliação sai de graça).
 - Se ela não comparecer, o valor da avaliação não é devolvido.
-- Forma e momento do pagamento da avaliação: [PREENCHER]
+- A avaliação é paga ANTECIPADA para garantir o horário: por Pix ou por link de cartão de crédito, o que ela preferir.
+- Por que a avaliação é paga (use com naturalidade se ela questionar): o horário fica reservado só pra ela, a Dra. Danielly prepara o atendimento com análise completa e um plano de tratamento personalizado, e o valor volta inteiro no procedimento.
 
 ## Procedimentos com valor que pode ser informado
 - Toxina botulínica (botox) terço superior: R$ 1.100 em até 10x sem juros, ou R$ 990 no Pix/dinheiro. Inclui retorno em 15 dias.

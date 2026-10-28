@@ -1,6 +1,7 @@
 """Servidor: webhook do WhatsApp, página de teste e painel de leads."""
 
 import asyncio
+import base64
 import csv
 import io
 import logging
@@ -13,7 +14,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 
-from . import config, db, processador, rotinas, whatsapp
+from . import config, db, midia, processador, rotinas, whatsapp
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("orya")
@@ -179,14 +180,61 @@ async def agendamentos():
 
 
 class AcaoAgendamento(BaseModel):
-    status: str  # compareceu | faltou | cancelado | agendado
+    status: str | None = None     # compareceu | faltou | cancelado | agendado
+    pagamento: str | None = None  # pendente | pago
 
 
 @app.post("/api/agendamentos/{ag_id}", dependencies=[Depends(autenticar)])
 async def alterar_agendamento(ag_id: int, a: AcaoAgendamento):
-    if a.status not in ("compareceu", "faltou", "cancelado", "agendado"):
-        raise HTTPException(400)
-    db.atualizar_agendamento(ag_id, status=a.status)
+    campos = {}
+    if a.status:
+        if a.status not in ("compareceu", "faltou", "cancelado", "agendado"):
+            raise HTTPException(400)
+        campos["status"] = a.status
+    if a.pagamento:
+        if a.pagamento not in ("pendente", "pago"):
+            raise HTTPException(400)
+        campos["pagamento"] = a.pagamento
+    if campos:
+        db.atualizar_agendamento(ag_id, **campos)
+    return {"ok": True}
+
+
+# ---------- fotos de antes e depois ----------
+
+@app.get("/api/antes-depois", dependencies=[Depends(autenticar)])
+async def listar_antes_depois():
+    return [{"procedimento": p, "nome": n, "tem_foto": bool(midia.arquivo(p))} for p, n in midia.PROCEDIMENTOS.items()]
+
+
+@app.get("/api/antes-depois/{proc}", dependencies=[Depends(autenticar)])
+async def ver_antes_depois(proc: str):
+    f = midia.arquivo(proc) if proc in midia.PROCEDIMENTOS else None
+    if not f:
+        raise HTTPException(404)
+    return FileResponse(f, headers={"Cache-Control": "no-store"})
+
+
+class FotoUpload(BaseModel):
+    imagem_base64: str
+    tipo: str
+    autorizacao_paciente: bool
+
+
+@app.post("/api/antes-depois/{proc}", dependencies=[Depends(autenticar)])
+async def subir_antes_depois(proc: str, foto: FotoUpload):
+    if not foto.autorizacao_paciente:
+        raise HTTPException(400, "Confirme que a paciente assinou o termo de autorização de imagem.")
+    try:
+        midia.salvar(proc, base64.b64decode(foto.imagem_base64.split(",")[-1]), foto.tipo)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"ok": True}
+
+
+@app.delete("/api/antes-depois/{proc}", dependencies=[Depends(autenticar)])
+async def apagar_antes_depois(proc: str):
+    midia.remover(proc)
     return {"ok": True}
 
 

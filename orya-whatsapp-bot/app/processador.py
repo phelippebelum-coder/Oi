@@ -5,7 +5,7 @@ import base64
 import logging
 from datetime import datetime, timedelta
 
-from . import cerebro, config, db, whatsapp
+from . import cerebro, config, db, ferramentas, midia, whatsapp
 
 log = logging.getLogger("orya.processador")
 
@@ -77,8 +77,9 @@ async def _processar_depois(tel: str, canal: str):
 
 async def responder_e_enviar(tel: str, canal: str, blocos: list[dict], nota: str | None = None):
     baloes = await cerebro.responder(tel, blocos, nota)
+    real = canal == "whatsapp" and whatsapp.configurado()
     for i, balao in enumerate(baloes):
-        if canal == "whatsapp" and whatsapp.configurado():
+        if real:
             if i > 0:
                 await asyncio.sleep(min(1.5 + len(balao) / 60, 4))  # ritmo de quem está digitando
                 if mid := _ultimo_id.get(tel):
@@ -90,6 +91,15 @@ async def responder_e_enviar(tel: str, canal: str, blocos: list[dict], nota: str
                 db.criar_aviso(tel, "erro_envio", f"Não consegui enviar a resposta para {tel}.")
                 return
         db.registrar_conversa(tel, "bot", balao)
+    for proc in ferramentas.anexos_pendentes.pop(tel, []):
+        if real:
+            try:
+                await asyncio.sleep(1.5)
+                await midia.enviar(tel, proc)
+            except Exception:
+                log.exception("Falha ao enviar foto %s para %s", proc, tel)
+                continue
+        db.registrar_conversa(tel, "bot", f"[foto:{proc}]")
 
 
 async def receber_eco(evento: dict):

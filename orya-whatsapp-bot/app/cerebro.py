@@ -24,10 +24,38 @@ def cliente() -> anthropic.AsyncAnthropic:
     return _cliente
 
 
+def _instrucoes_pagamento() -> str:
+    linhas = []
+    if config.PIX_CHAVE:
+        linhas.append(f"- Pix: chave {config.PIX_CHAVE} (favorecido: {config.PIX_FAVORECIDO}). Mande a chave sozinha num "
+                      "balão separado, pra ela copiar fácil, e peça o comprovante.")
+    else:
+        linhas.append("- Pix: a chave é enviada pela equipe. Diga que já vai chegar por aqui e use `avisar_equipe` "
+                      "pedindo para enviar o Pix da avaliação.")
+    if config.LINK_CARTAO:
+        linhas.append(f"- Cartão de crédito: envie este link de pagamento: {config.LINK_CARTAO}")
+    else:
+        linhas.append("- Cartão de crédito: o link é gerado pela equipe. Diga que já vai chegar por aqui e use "
+                      "`avisar_equipe` pedindo para enviar o link de cartão da avaliação.")
+    linhas.append("- Ao agendar, informe em `agendar_avaliacao` a forma de pagamento escolhida.")
+    return "\n".join(linhas)
+
+
 def prompt_sistema() -> str:
-    base = (config.BASE_DIR / "prompts" / "sdr_orya.md").read_text(encoding="utf-8")
-    precos = (config.BASE_DIR / "prompts" / "precos.md").read_text(encoding="utf-8")
-    return base.replace("{{ATENDENTE}}", config.ATENDENTE).replace("{{PRECOS}}", precos)
+    pasta = config.BASE_DIR / "prompts"
+    base = (pasta / "sdr_orya.md").read_text(encoding="utf-8")
+    promocoes = pasta / "promocoes.md"
+    trocas = {
+        "{{ATENDENTE}}": config.ATENDENTE,
+        "{{PRECOS}}": (pasta / "precos.md").read_text(encoding="utf-8"),
+        "{{PAGAMENTO}}": _instrucoes_pagamento(),
+        "{{PROMOCOES}}": promocoes.read_text(encoding="utf-8") if promocoes.exists() else "(nenhuma no momento)",
+        "{{GRUPO_VIP}}": (f"link: {config.GRUPO_VIP_LINK}" if config.GRUPO_VIP_LINK
+                          else "o link ainda não foi configurado, então só comente que existe e que a equipe envia"),
+    }
+    for chave, valor in trocas.items():
+        base = base.replace(chave, valor)
+    return base
 
 
 def contexto_do_turno(contato: dict, nota: str | None = None) -> str:

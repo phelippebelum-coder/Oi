@@ -40,6 +40,18 @@ TEMPLATE_IDIOMA = _env("TEMPLATE_IDIOMA", "pt_BR")
 EQUIPE_WHATSAPP = _lista("EQUIPE_WHATSAPP")  # ex.: 5511999999999,5511988888888
 ATENDENTE = _env("ATENDENTE", "o atendimento da ORYA")
 
+# Pagamento da avaliação (opcionais: sem eles, a equipe envia o Pix/link quando o bot avisar)
+PIX_CHAVE = _env("PIX_CHAVE")
+PIX_FAVORECIDO = _env("PIX_FAVORECIDO", "ORYA Estética Avançada")
+LINK_CARTAO = _env("LINK_CARTAO")
+
+# Fotos de antes e depois
+LEGENDA_ANTES_DEPOIS = _env(
+    "LEGENDA_ANTES_DEPOIS",
+    "Resultado de paciente da Dra. Danielly Pinheiro (CRBM-1 62832), imagem autorizada pela paciente. "
+    "Resultados variam de pessoa para pessoa.",
+)
+
 # Painel e página de teste
 PAINEL_SENHA = _env("PAINEL_SENHA")
 

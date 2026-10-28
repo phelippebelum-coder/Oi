@@ -15,13 +15,16 @@ NOTAS_ETAPA = {
     "3": ("Ela está há 3 dias sem responder. Tire uma dúvida comum de quem está na fase dela (dor, naturalidade, "
           "tempo de recuperação ou como funciona a avaliação), sem cobrança."),
     "7": "Ela está há 7 dias sem responder. Ofereça duas opções reais de horário (use ver_horarios) de forma leve.",
-    "15": ("Ela está há 15 dias sem responder. Mensagem de porta aberta: você lembrou dela, a ORYA está aqui quando "
-           "ela quiser. Sem pressão."),
+    "15": ("Ela está há 15 dias sem responder. Conte que tem novidades justamente na área que ela procurou (use a "
+           "seção de promoções e novidades, se houver), diga que a gente gostaria muito de conversar e ofereça uma "
+           "ligação rápida com o nosso executivo de vendas, do time de qualidade, se ela preferir."),
     "30": ("Ela está há 30 dias sem responder. Reativação: pergunte como ela está e se aquele incômodo ainda a "
-           "acompanha, convidando de novo para a avaliação."),
-    "mensal": ("Mensagem mensal de relacionamento: conte que este mês tem condições especiais na clínica e "
-               "convide para o grupo VIP da ORYA no WhatsApp, onde saem as novidades em primeira mão. "
-               "Sem citar valores. Link do grupo: {link}"),
+           "acompanha, conte as novidades da área dela e convide para o grupo VIP ({link}). Lembre que a agenda "
+           "é flexível."),
+    "mensal": ("Mensagem mensal de relacionamento: conte as promoções e novidades do mês (seção de promoções e "
+               "novidades; se estiver vazia, fale só em novidades e condições especiais, sem inventar), puxando "
+               "pela área de interesse dela, e convide para o grupo VIP da ORYA no WhatsApp ({link}). "
+               "Feche oferecendo um horário ou uma ligação com o nosso executivo de vendas."),
 }
 REGRA_FOLLOWUP = (" Envie UM follow-up curto (1 ou 2 balões), humano, como alguém que lembrou dela de verdade. "
                   "Nada de 'e aí?', nada de cobrança pelo sumiço. Se ela já tinha dito que não queria agora, só deixe "

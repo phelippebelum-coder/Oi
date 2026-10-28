@@ -172,3 +172,25 @@ def _midia(m: dict) -> dict | None:
         d = m.get(t, {})
         return {"tipo": t, "id": d.get("id"), "mime": d.get("mime_type")}
     return None
+
+
+async def subir_midia(dados: bytes, mime: str, nome: str) -> str:
+    """Envia o arquivo para o WhatsApp e devolve o media_id (vale por 30 dias)."""
+    async with httpx.AsyncClient(timeout=60) as cli:
+        r = await cli.post(
+            _url(f"{config.WHATSAPP_PHONE_NUMBER_ID}/media"), headers=_headers(),
+            data={"messaging_product": "whatsapp", "type": mime}, files={"file": (nome, dados, mime)},
+        )
+    if r.status_code >= 400:
+        log.error("Erro ao subir mídia %s: %s", r.status_code, r.text)
+        r.raise_for_status()
+    return r.json()["id"]
+
+
+async def enviar_imagem(para: str, media_id: str, legenda: str = "") -> dict:
+    return await _post({
+        "messaging_product": "whatsapp",
+        "to": para,
+        "type": "image",
+        "image": {"id": media_id, "caption": legenda},
+    })

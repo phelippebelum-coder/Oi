@@ -21,6 +21,7 @@
   .resumo b { display:block; font-size: 20px; color: var(--dourado); }
   .filtros { display:flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   select, input, textarea { padding: 6px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: inherit; }
+  input[type=file] { width: 100%; max-width: 100%; border: 0; padding: 0; }
   .tabela { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; }
   th, td { text-align: left; padding: 8px; border-bottom: 1px solid #f0e8de; vertical-align: top; }
@@ -50,6 +51,7 @@
   <button data-aba="leads" class="ativo">Leads e clientes</button>
   <button data-aba="agenda">Avaliações</button>
   <button data-aba="avisos">Avisos <span id="nAvisos"></span></button>
+  <button data-aba="fotos">Antes e depois</button>
   <button data-aba="importar">Importar / exportar</button>
 </nav>
 <main>
@@ -66,6 +68,10 @@
   </section>
   <section id="aba-agenda" class="cartao" hidden><div class="tabela"><table><thead><tr><th>Quando</th><th>Cliente</th><th>Profissional / interesse</th><th>Status</th><th></th></tr></thead><tbody id="ags"></tbody></table></div></section>
   <section id="aba-avisos" class="cartao" hidden><button class="acao sec" id="lerTodos">Marcar todos como lidos</button><div id="avisos"></div></section>
+  <section id="aba-fotos" class="cartao" hidden>
+    <p>Uma foto por procedimento (JPG ou PNG, até 5 MB, de preferência já com o antes e o depois lado a lado). O bot envia como referência quando a cliente demonstra interesse. Use somente fotos de pacientes que assinaram o termo de autorização de imagem.</p>
+    <div id="fotos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px"></div>
+  </section>
   <section id="aba-importar" class="cartao" hidden>
     <p>Cole uma lista de clientes que já são da ORYA (CSV com cabeçalho). Quando elas mandarem mensagem, o bot reconhece como cliente de retorno e já fala de manutenção.</p>
     <textarea id="csv" rows="10" style="width:100%" placeholder="telefone,nome,ultimo_procedimento,data_ultimo_procedimento&#10;11999998888,Maria Souza,toxina,2026-06-10"></textarea>
@@ -131,8 +137,12 @@ async function abrir(tel) {
     <button class="acao sec" onclick="acao('${esc(tel)}',{status:'perdido'})">Marcar perdido</button></div>
     <dl>${Object.entries(f).map(([k, v]) => `<dt>${esc(k.replace(/_/g, ' '))}</dt><dd>${esc(Array.isArray(v) ? v.join(', ') : v)}</dd>`).join('') || '<dd>Ficha vazia</dd>'}</dl>
     ${d.agendamentos.map(a => `<dl><dt>📅 ${dt(a.inicio)} · ${esc(a.profissional)} · ${esc(a.status)}</dt><dd>${esc(a.resumo)}</dd></dl>`).join('')}
-    <h3>Conversa</h3><div class="conv">${d.conversa.map(m => `<div class="m ${m.autor}">${esc(m.texto)}<br><small>${dt(m.criado_em)}${m.autor === 'equipe' ? ' · equipe' : ''}</small></div>`).join('')}</div>`;
+    <h3>Conversa</h3><div class="conv">${d.conversa.map(m => `<div class="m ${m.autor}">${fotoOuTexto(m.texto)}<br><small>${dt(m.criado_em)}${m.autor === 'equipe' ? ' · equipe' : ''}</small></div>`).join('')}</div>`;
   const conv = $('#detalhe .conv'); conv.scrollTop = conv.scrollHeight;
+}
+function fotoOuTexto(t) {
+  const m = /^\[foto:([a-z_]+)\]$/.exec(t || '');
+  return m ? `<img src="/api/antes-depois/${m[1]}" style="max-width:220px;border-radius:6px"><br><small>antes e depois: ${m[1]}</small>` : esc(t);
 }
 function fechar() { $('#detalhe').style.display = 'none'; aberto = null; }
 async function acao(tel, corpo) {
@@ -145,14 +155,41 @@ async function renderAgenda() {
   const porTel = Object.fromEntries(contatos.map(c => [c.telefone, c]));
   $('#ags').innerHTML = ags.filter(a => $('#fTeste').checked || !a.telefone.startsWith('teste-')).map(a => `<tr>
     <td><b>${dt(a.inicio)}</b></td><td>${esc(porTel[a.telefone] ? nome(porTel[a.telefone]) : a.telefone)}<br><small>${esc(a.telefone)}</small></td>
-    <td>${esc(a.profissional)}<br><small>${esc(a.procedimento)}</small></td><td><span class="etq">${esc(a.status)}</span></td>
-    <td>${['compareceu', 'faltou', 'cancelado'].map(s => `<button class="acao sec" onclick="statusAg(${a.id},'${s}')">${s}</button>`).join('')}</td></tr>`).join('')
+    <td>${esc(a.procedimento)}<br><small>pagamento: ${esc(a.forma_pagamento || '-')}</small></td>
+    <td><span class="etq">${esc(a.status)}</span><span class="etq ${a.pagamento === 'pago' ? 'cliente' : 'quente'}">${a.pagamento === 'pago' ? 'pago' : 'pagamento pendente'}</span></td>
+    <td>${a.pagamento !== 'pago' ? `<button class="acao" onclick="pagoAg(${a.id})">marcar pago</button>` : ''}${['compareceu', 'faltou', 'cancelado'].map(s => `<button class="acao sec" onclick="statusAg(${a.id},'${s}')">${s}</button>`).join('')}</td></tr>`).join('')
     || '<tr><td colspan="5" class="vazio">Nenhuma avaliação.</td></tr>';
 }
 async function statusAg(id, status) {
   await fetch('/api/agendamentos/' + id, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ status }) });
   renderAgenda();
 }
+
+async function pagoAg(id) {
+  await fetch('/api/agendamentos/' + id, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ pagamento: 'pago' }) });
+  renderAgenda();
+}
+
+async function renderFotos() {
+  const lista = await (await fetch('/api/antes-depois')).json();
+  $('#fotos').innerHTML = lista.map(f => `<div style="border:1px solid #f0e8de;border-radius:10px;padding:10px">
+    <b>${esc(f.nome)}</b><br>
+    ${f.tem_foto ? `<img src="/api/antes-depois/${f.procedimento}?t=${Date.now()}" style="width:100%;border-radius:8px;margin:6px 0">
+      <button class="acao sec" onclick="apagarFoto('${f.procedimento}')">remover</button>` : '<p class="vazio">Sem foto</p>'}
+    <p><input type="file" accept="image/jpeg,image/png" id="arq-${f.procedimento}"></p>
+    <label><input type="checkbox" id="tcle-${f.procedimento}"> a paciente assinou o termo de imagem</label>
+    <p><button class="acao" onclick="subirFoto('${f.procedimento}')">Salvar foto</button></p></div>`).join('');
+}
+async function subirFoto(proc) {
+  const arq = $('#arq-' + proc).files[0];
+  if (!arq) return alert('Escolha uma imagem.');
+  if (!$('#tcle-' + proc).checked) return alert('Confirme a autorização de imagem da paciente.');
+  const b64 = await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(arq); });
+  const r = await fetch('/api/antes-depois/' + proc, { method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ imagem_base64: b64, tipo: arq.type, autorizacao_paciente: true }) });
+  if (!r.ok) alert((await r.json()).detail || 'Erro ao salvar'); renderFotos();
+}
+async function apagarFoto(proc) { if (confirm('Remover esta foto?')) { await fetch('/api/antes-depois/' + proc, { method: 'DELETE' }); renderFotos(); } }
 
 async function renderAvisos() {
   const avs = await (await fetch('/api/avisos')).json();
@@ -171,6 +208,7 @@ async function carregar() {
   renderLeads();
   if (!$('#aba-agenda').hidden) renderAgenda();
   if (!$('#aba-avisos').hidden) renderAvisos();
+  if (!$('#aba-fotos').hidden && !$('#fotos').innerHTML) renderFotos();
   const avs = await (await fetch('/api/avisos')).json();
   const n = avs.filter(a => !a.lido).length; $('#nAvisos').textContent = n ? `(${n})` : '';
 }

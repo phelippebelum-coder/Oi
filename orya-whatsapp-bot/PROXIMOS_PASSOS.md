@@ -2,7 +2,7 @@
 
 ## Pronto
 - Código completo nesta pasta (branch `orya-whatsapp-bot`): webhook da Meta, cérebro com o roteiro SDR da ORYA, ficha/categorização, agenda, passagem para a equipe, lembretes, follow-up, página de teste (`/teste`), painel (`/painel`) e teste automático de qualidade (`avaliar.py`).
-- 17 testes técnicos passando. O formato da chamada ao Claude foi conferido.
+- 20 testes técnicos passando. O formato da chamada ao Claude foi conferido.
 - Ainda NÃO testado com o Claude de verdade (faltava a chave da API).
 
 ## Próximo passo: testar na página de teste
@@ -18,12 +18,27 @@
 - Cadastro: nome, sobrenome e e-mail (sem insistir); exportação CSV no painel.
 - Tom closer + redireciona assuntos fora da estética.
 
+## Atualizado (28/10, parte 2)
+- Avaliação paga antecipada por Pix ou link de cartão; controle "pagamento pendente/pago" no painel.
+- Domingo sob consulta (bot avisa a equipe e oferece sábado); agenda flexível.
+- Dra. Danielly: especialização em harmonização facial em Paris + pós em biomedicina estética.
+- Regiões: Jardim São Paulo (perto de Santana e Shopping Center Norte), Tatuapé, Jardins.
+- Rapport: espelha emoji, risada e estilo; nome, sobrenome e e-mail só no fim.
+- Antes e depois por procedimento (upload no painel, com confirmação do termo de imagem).
+- Resgate e follow-ups com novidades da área de interesse, grupo VIP e ligação com o executivo de vendas.
+- Áudio de lead com potencial → pedido de ligação para o Phelippe.
+- Promoções do mês em `prompts/promocoes.md`.
+
 ## Informações que faltam (Phelippe)
-- [ ] E-mail que recebe os relatórios + um Gmail com senha de app para enviar
-- [ ] Pagamento da avaliação de R$ 200: Pix antecipado? na clínica? (`prompts/precos.md`)
-- [ ] Domingo tem atendimento?
-- [ ] Blefaro plasma: confirmar R$ 1.000 (10x) / R$ 900 no Pix (veio da skill antiga)
+- [ ] E-mail(s) que recebem os relatórios + um Gmail com senha de app para enviar
+- [ ] Regiões: Tatuapé e Jardins são outras unidades/endereços ou só regiões de onde vêm pacientes?
+- [ ] Metodologia: tem um nome ou passo a passo próprio da Dra. Danielly para o bot citar?
+- [ ] Chave Pix e link de cartão (fixo) para o bot enviar sozinho, ou a equipe envia?
+- [ ] Avaliação sem pagamento: cancelar o horário depois de quantas horas?
+- [ ] Fotos de antes e depois (botox, harmonização facial, labial, glútea): subir pelo painel
+- [ ] Promoções do mês → `prompts/promocoes.md`
 - [ ] Link do grupo VIP → variável `GRUPO_VIP_LINK`
+- [ ] Blefaro plasma: confirmar R$ 1.000 (10x) / R$ 900 no Pix
 - [ ] Como o bot se apresenta → variável `ATENDENTE` (hoje: "o atendimento da ORYA")
 
 ## Depois de aprovar o comportamento

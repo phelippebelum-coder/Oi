@@ -11,7 +11,7 @@ from anthropic.types.beta import BetaTextBlock, BetaToolUseBlock
 
 from datetime import timedelta
 
-from app import agenda, cerebro, config, db, processador, relatorio, rotinas, whatsapp
+from app import agenda, cerebro, config, db, ferramentas, midia, processador, relatorio, rotinas, whatsapp
 
 
 @pytest.fixture(autouse=True)
@@ -86,7 +86,7 @@ def test_conversa_com_ficha_e_baloes(monkeypatch):
 def test_agendamento_avisa_equipe(monkeypatch):
     slot = agenda.horarios_livres("danielly")[0]
     falso = ClaudeFalso([
-        ([ferramenta("agendar_avaliacao", {"inicio": slot.isoformat(), "profissional": "danielly",
+        ([ferramenta("agendar_avaliacao", {"inicio": slot.isoformat(), "forma_pagamento": "pix",
                                            "procedimento_interesse": "preenchimento labial",
                                            "resumo_para_equipe": "Ana, 32, Santana"})], "tool_use"),
         ([texto("Prontinho, Ana! Tá agendado.")], "end_turn"),
@@ -97,7 +97,8 @@ def test_agendamento_avisa_equipe(monkeypatch):
     assert baloes == ["Prontinho, Ana! Tá agendado."]
     assert db.obter_contato("5511988887777")["status"] == "agendado"
     assert db.agendamentos_ativos("5511988887777")[0]["inicio"] == slot.isoformat()
-    assert any(a["tipo"] == "agendamento" for a in db.listar_avisos())
+    aviso = next(a for a in db.listar_avisos() if a["tipo"] == "agendamento")
+    assert "pagamento PENDENTE (Pix)" in aviso["texto"]
     # o mesmo horário não aparece mais como livre (1 avaliação por vez)
     assert slot not in agenda.horarios_livres("danielly")
     resultado = falso.chamadas[1][-1]["content"][0]["content"]
@@ -329,6 +330,75 @@ def test_exportar_csv():
 
 def test_prompt_regras_de_preco():
     p = cerebro.prompt_sistema()
-    assert "Suelen" not in p
+    assert "Suelen" not in p and "{{" not in p
+    for trecho in ("Paris", "Tatuapé", "Shopping Center Norte", "Jardins", "Domingo é sob consulta",
+                   "link de cartão", "executivo de vendas"):
+        assert trecho in p
     for trecho in ("R$ 1.100", "R$ 1.400", "R$ 229", "R$ 1.037", "R$ 150", "R$ 200", "10x sem juros"):
         assert trecho in p
+
+
+PNG = (b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde"
+       b"\x00\x00\x00\x0cIDATx\x9cc\xf8\xff\xff?\x00\x05\xfe\x02\xfe\xa7\x9a\xa0\x9b\x00\x00\x00\x00IEND\xaeB`\x82")
+
+
+def test_antes_depois_enviado_depois_do_texto(monkeypatch):
+    midia.salvar("botox", PNG, "image/png")
+    falso = ClaudeFalso([
+        ([ferramenta("enviar_antes_depois", {"procedimento": "botox"}),
+          ferramenta("enviar_antes_depois", {"procedimento": "labial"}, "t2")], "tool_use"),
+        ([texto("Olha esse resultado de uma paciente da Dra., bem natural, né? 🤍")], "end_turn"),
+        ([ferramenta("enviar_antes_depois", {"procedimento": "botox"})], "tool_use"),
+        ([texto("Lembra daquela foto?")], "end_turn"),
+    ])
+    monkeypatch.setattr(cerebro, "_chamar", falso)
+    tel = "teste-foto"
+    db.garantir_contato(tel, "teste")
+    asyncio.run(processador.responder_e_enviar(tel, "teste", [{"type": "text", "text": "quero botox"}]))
+    resultados = falso.chamadas[1][-1]["content"]
+    assert resultados[0]["content"].startswith("Foto programada")
+    assert "Ainda não há foto" in resultados[1]["content"]
+    assert [c["texto"] for c in db.obter_conversa(tel)][-2:] == [
+        "Olha esse resultado de uma paciente da Dra., bem natural, né? 🤍", "[foto:botox]"]
+    # não reenvia a mesma foto
+    asyncio.run(processador.responder_e_enviar(tel, "teste", [{"type": "text", "text": "e aí?"}]))
+    assert "já foi enviada" in falso.chamadas[3][-1]["content"][0]["content"]
+    assert db.obter_conversa(tel)[-1]["texto"] == "Lembra daquela foto?"
+    assert not ferramentas.anexos_pendentes
+
+
+def test_foto_whatsapp_reaproveita_upload(monkeypatch):
+    chamadas = []
+
+    async def subir(dados, mime, nome):
+        chamadas.append(("subir", mime))
+        return "MID1"
+
+    async def enviar_img(para, mid, legenda):
+        chamadas.append(("enviar", para, mid, "autorizada" in legenda))
+
+    monkeypatch.setattr(whatsapp, "subir_midia", subir)
+    monkeypatch.setattr(whatsapp, "enviar_imagem", enviar_img)
+    midia.salvar("labial", PNG, "image/png")
+    asyncio.run(midia.enviar("5511900000001", "labial"))
+    asyncio.run(midia.enviar("5511900000002", "labial"))
+    assert chamadas == [("subir", "image/png"), ("enviar", "5511900000001", "MID1", True),
+                        ("enviar", "5511900000002", "MID1", True)]
+
+
+def test_upload_exige_autorizacao_e_pagamento_no_painel():
+    import base64 as b64
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    corpo = {"imagem_base64": "data:image/png;base64," + b64.b64encode(PNG).decode(), "tipo": "image/png"}
+    with TestClient(app) as cli:
+        assert cli.post("/api/antes-depois/botox", json={**corpo, "autorizacao_paciente": False}).status_code == 400
+        assert cli.post("/api/antes-depois/botox", json={**corpo, "autorizacao_paciente": True}).status_code == 200
+        assert cli.get("/api/antes-depois/botox").content == PNG
+        assert [f["tem_foto"] for f in cli.get("/api/antes-depois").json()] == [True, False, False, False]
+        db.garantir_contato("x")
+        ag = db.criar_agendamento("x", "2030-01-01T10:00:00-03:00", "danielly", "botox", "r", "pix")
+        assert db.listar_agendamentos()[0]["pagamento"] == "pendente"
+        cli.post(f"/api/agendamentos/{ag}", json={"pagamento": "pago"})
+        assert db.listar_agendamentos()[0]["pagamento"] == "pago"

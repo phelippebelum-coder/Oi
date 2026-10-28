@@ -2,7 +2,10 @@
 
 from datetime import date, datetime, timedelta
 
-from . import agenda, config, db, equipe, whatsapp
+from . import agenda, config, db, equipe, midia, whatsapp
+
+# Fotos que o bot pediu para enviar nesta resposta (o processador envia depois dos balões de texto).
+anexos_pendentes: dict[str, list[str]] = {}
 
 ETAPAS = ["abertura", "descoberta", "triagem", "cadastro", "preco", "agendamento", "confirmacao", "pos_agendamento"]
 
@@ -78,6 +81,7 @@ FERRAMENTAS = [
             "properties": {
                 "inicio": {"type": "string", "description": "Data e hora ISO exatamente como veio de ver_horarios"},
                 "procedimento_interesse": {"type": "string"},
+                "forma_pagamento": {"type": "string", "enum": ["pix", "cartao", "a_definir"]},
                 "resumo_para_equipe": {
                     "type": "string",
                     "description": (
@@ -87,6 +91,21 @@ FERRAMENTAS = [
                 },
             },
             "required": ["inicio", "procedimento_interesse", "resumo_para_equipe"],
+        },
+    },
+    {
+        "name": "enviar_antes_depois",
+        "description": (
+            "Envia para a cliente uma foto real de antes e depois do procedimento de interesse, como referência. "
+            "A foto chega logo depois da sua mensagem de texto. Uma por procedimento por conversa."
+        ),
+        "input_schema": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "procedimento": {"type": "string", "enum": list(midia.PROCEDIMENTOS)},
+            },
+            "required": ["procedimento"],
         },
     },
     {
@@ -172,6 +191,8 @@ async def executar(nome: str, entrada: dict, telefone: str) -> str:
         return await _remarcar(contato, entrada)
     if nome == "transferir_para_humano":
         return await _transferir(contato, entrada)
+    if nome == "enviar_antes_depois":
+        return _antes_depois(contato, entrada)
     if nome == "solicitar_ligacao":
         return await _ligacao(contato, entrada)
     if nome == "avisar_equipe":
@@ -250,14 +271,16 @@ async def _agendar(contato: dict, entrada: dict) -> str:
     motivo = agenda.validar_horario(inicio, prof)
     if motivo:
         return f"Não foi possível agendar: {motivo}. Consulte ver_horarios de novo e ofereça outras opções."
+    forma = entrada.get("forma_pagamento") or "a_definir"
     ag_id = db.criar_agendamento(tel, inicio.isoformat(), prof, entrada.get("procedimento_interesse"),
-                                 entrada.get("resumo_para_equipe"))
+                                 entrada.get("resumo_para_equipe"), forma)
     db.atualizar_contato(tel, status="agendado", temperatura="quente", etapa="confirmacao")
     quando = agenda.descrever(inicio)
     await equipe.notificar(
         tel, "agendamento",
         f"✅ Nova avaliação agendada pelo bot\n{_rotulo_contato(contato)}\n"
-        f"{quando} com {agenda.PROFISSIONAIS[prof]}\nInteresse: {entrada.get('procedimento_interesse')}\n\n"
+        f"{quando} com {agenda.PROFISSIONAIS[prof]}\nInteresse: {entrada.get('procedimento_interesse')}\n"
+        f"💳 Avaliação R$ 200: pagamento PENDENTE ({ {'pix': 'Pix', 'cartao': 'link de cartão'}.get(forma, 'forma a definir') })\n\n"
         f"{entrada.get('resumo_para_equipe', '')}",
     )
     clid = (contato.get("referral") or {}).get("ctwa_clid")
@@ -265,7 +288,8 @@ async def _agendar(contato: dict, entrada: dict) -> str:
         await whatsapp.enviar_conversao("Schedule", clid)
     return (
         f"Agendado (id {ag_id}): {quando} ({inicio.strftime('%d/%m/%Y %H:%M')}) com {agenda.PROFISSIONAIS[prof]}. "
-        "Agora confirme com ela: data, hora, endereço (Rua Viri, 62, Jardim São Paulo), nome da Dra. e orientações "
+        "Agora siga com o pagamento antecipado da avaliação (Pix ou link de cartão), depois o cadastro "
+        "(nome, sobrenome e e-mail) se ainda faltar, e confirme com ela: data, hora, endereço (Rua Viri, 62, Jardim São Paulo), nome da Dra. e orientações "
         "(sem maquiagem se for facial, trazer o nome dos medicamentos, chegar 10 min antes). Se faltar algum dado do "
         "cadastro, peça de forma leve."
     )
@@ -297,11 +321,28 @@ async def _remarcar(contato: dict, entrada: dict) -> str:
     return f"Remarcado para {agenda.descrever(novo)}. Confirme com ela."
 
 
+def _antes_depois(contato: dict, entrada: dict) -> str:
+    proc = entrada.get("procedimento")
+    if proc not in midia.PROCEDIMENTOS:
+        return "Procedimento inválido."
+    if not midia.arquivo(proc):
+        return ("Ainda não há foto de antes e depois cadastrada para esse procedimento. Não mencione foto; "
+                "siga a conversa e use os diferenciais da Dra. Danielly.")
+    ficha = dict(contato["ficha"])
+    enviados = ficha.get("antes_depois_enviados") or []
+    if proc in enviados:
+        return "Essa foto já foi enviada nesta conversa. Não envie de novo; pode fazer referência a ela."
+    ficha["antes_depois_enviados"] = [*enviados, proc]
+    db.atualizar_contato(contato["telefone"], ficha=ficha)
+    anexos_pendentes.setdefault(contato["telefone"], []).append(proc)
+    return "Foto programada: ela chega logo depois da sua mensagem. Escreva uma frase curta apresentando a foto."
+
+
 async def _ligacao(contato: dict, entrada: dict) -> str:
     tel = contato["telefone"]
     await equipe.notificar(
         tel, "ligacao",
-        f"📞 Cliente pediu ligação / precisa de atenção\n{_rotulo_contato(contato)}\n"
+        f"📞 Ligação do executivo de vendas: cliente pediu ligação ou precisa de atenção\n{_rotulo_contato(contato)}\n"
         f"Ligar para: +{tel}\nMelhor horário: {entrada.get('melhor_horario') or 'não informado'}\n"
         f"Motivo: {entrada.get('motivo')}\n\n{entrada.get('resumo', '')}",
     )

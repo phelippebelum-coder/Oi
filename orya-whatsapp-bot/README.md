@@ -13,7 +13,10 @@ O bot faz o pré-atendimento da ORYA 24 horas por dia no WhatsApp oficial (Cloud
 - **Follow-up em cadência** para quem parou de responder: 1, 3, 7, 15 e 30 dias, e depois uma mensagem por mês com convite para o grupo VIP. Se a lead responder, a cadência zera e o bot recomeça a conversa (resgate).
 - **Relatórios por e-mail**: aviso na hora quando agenda, pede ligação ou passa para a equipe, e um relatório diário (20h) com todos os leads, categoria, e-mail e resumo da conversa.
 - **Pedido de ligação**: quando a cliente quer que liguem ou precisa de atenção maior, o Phelippe recebe no WhatsApp e no e-mail o número pra ligar.
-- **Cadastro para e-mail marketing**: pede nome, sobrenome e e-mail (sem insistir). O painel exporta a lista em CSV.
+- **Cadastro para e-mail marketing**: pede nome, sobrenome e e-mail só no fim, na fase de agendamento (sem insistir). O painel exporta a lista em CSV.
+- **Antes e depois**: vocês sobem uma foto por procedimento (botox, harmonização facial, labial, harmonização glútea) na aba "Antes e depois" do painel; o bot envia como referência quando a cliente demonstra interesse, com a legenda de autorização.
+- **Pagamento antecipado da avaliação** (Pix ou link de cartão): o bot pergunta a preferência, envia a chave/link (se configurados) ou avisa a equipe para enviar. No painel, cada avaliação mostra "pagamento pendente" até vocês marcarem como pago.
+- **Promoções do mês**: escreva em `prompts/promocoes.md`; o bot usa nos follow-ups, no resgate e na conversa.
 - **Entende fotos** e pede com naturalidade pra escrever quando recebe áudio.
 - **Reconhece clientes antigas** (importe a lista no painel) e já fala de manutenção.
 - **Compliance**: preço só no individual, sem promessa de resultado, sem escassez falsa, sem antes e depois, honesta se perguntarem se é robô (CFBM Res. 330/2020 e LGPD).
@@ -23,7 +26,8 @@ O bot faz o pré-atendimento da ORYA 24 horas por dia no WhatsApp oficial (Cloud
 
 ```
 prompts/sdr_orya.md   ← comportamento do bot (edite aqui o tom e as regras)
-prompts/precos.md     ← tabela de preços (PREENCHER antes de ligar)
+prompts/precos.md     ← tabela de preços e regras de pagamento
+prompts/promocoes.md  ← promoções e novidades do mês (editar todo mês)
 prompts/agenda.json   ← (opcional) horários de atendimento; sem ele vale seg-sáb 8h-20h, sempre com a Dra. Danielly
 app/                  ← servidor (webhook, cérebro, ferramentas, agenda, rotinas)
 static/               ← página de teste e painel
@@ -80,7 +84,9 @@ Pelas regras do WhatsApp, depois de 24h sem mensagem da cliente só dá pra escr
 - `orya_followup_d7`: `Oi, {{1}}! Abriram alguns horários de avaliação com a Dra. Danielly essa semana. Quer que eu veja um que encaixe na sua rotina?`
 - `orya_followup_d15`: `{{1}}, passando só pra dizer que a ORYA tá aqui quando você quiser cuidar de você. É só me chamar por aqui 🤍`
 - `orya_followup_d30`: `Oi, {{1}}! Tudo bem por aí? Aquele incômodo que você me contou ainda te acompanha? Se quiser, vejo um horário com a Dra. Danielly pra você.`
-- `orya_mensal_vip` (`{{2}}` = link do grupo): `Oi, {{1}}! Este mês tem condições especiais aqui na ORYA. As novidades saem primeiro no nosso grupo VIP: {{2}}. Se preferir, me chama aqui que te conto 🤍`
+- `orya_mensal_vip` (`{{2}}` = link do grupo): `Oi, {{1}}! Este mês tem novidades e condições especiais aqui na ORYA. Elas saem primeiro no nosso grupo VIP: {{2}}. Se preferir, me chama aqui que te conto tudo, ou nosso executivo te liga rapidinho 🤍`
+
+O texto do template é fixo depois de aprovado pela Meta. Para mudar a promoção do mês no template, crie um novo template (ou use um texto genérico como acima e deixe o detalhe para quando ela responder, porque aí o bot usa `prompts/promocoes.md`).
 
 Se faltar o template de alguma etapa, o bot não envia e deixa um aviso no painel.
 

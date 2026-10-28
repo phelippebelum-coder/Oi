@@ -97,6 +97,11 @@ def conectar():
 def iniciar():
     with conectar() as con:
         con.executescript(ESQUEMA)
+        colunas = {l["name"] for l in con.execute("PRAGMA table_info(agendamentos)")}
+        if "pagamento" not in colunas:
+            con.execute("ALTER TABLE agendamentos ADD COLUMN pagamento TEXT NOT NULL DEFAULT 'pendente'")
+        if "forma_pagamento" not in colunas:
+            con.execute("ALTER TABLE agendamentos ADD COLUMN forma_pagamento TEXT")
 
 
 # ---------- contatos ----------
@@ -201,12 +206,12 @@ def obter_conversa(telefone: str, depois_de: int = 0) -> list[dict]:
 
 # ---------- agendamentos ----------
 
-def criar_agendamento(telefone, inicio_iso, profissional, procedimento, resumo) -> int:
+def criar_agendamento(telefone, inicio_iso, profissional, procedimento, resumo, forma_pagamento=None) -> int:
     with conectar() as con:
         cur = con.execute(
-            "INSERT INTO agendamentos (telefone, inicio, profissional, procedimento, resumo, criado_em) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (telefone, inicio_iso, profissional, procedimento, resumo, agora_iso()),
+            "INSERT INTO agendamentos (telefone, inicio, profissional, procedimento, resumo, forma_pagamento, criado_em) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (telefone, inicio_iso, profissional, procedimento, resumo, forma_pagamento, agora_iso()),
         )
         return cur.lastrowid
 
