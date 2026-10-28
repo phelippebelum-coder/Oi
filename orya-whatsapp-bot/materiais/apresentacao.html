@@ -6,8 +6,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500;1,700&family=Fahkwang:wght@400;500;600&family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --espresso:#24170F; --marrom:#4A3426; --dourado:#C9A063; --ouro-escuro:#9C7638; --rose:#E8C4B8;
-    --rose-claro:#F6E6DF; --areia:#F4ECE2; --creme:#FFFAF4; --texto:#3B2A1F; --texto-suave:#6E5A4C;
+    --espresso:#6B5E4E; --marrom:#5A4E40; --dourado:#E6C996; --ouro-escuro:#9A7440; --rose:#F1DCD2;
+    --rose-claro:#FAEEE8; --areia:#F6F1EA; --creme:#FFFCF7; --texto:#4A4034; --texto-suave:#6F6457;
   }
   @page { size: 1920px 1080px; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,7 +17,7 @@
   .escuro { background: var(--espresso); color: var(--creme); }
   .claro { background: var(--areia); }
   .creme { background: var(--creme); }
-  .ouro { background: #A97F3F; color: var(--espresso); }
+  .ouro { background: #EADBC6; color: #4A4034; }
 
   .sobre { font-family: "Fahkwang", sans-serif; font-weight: 600; font-size: 26px; letter-spacing: 7px; text-transform: uppercase; color: var(--ouro-escuro); }
   .escuro .sobre { color: var(--dourado); }
@@ -30,14 +30,15 @@
   h3 { font-family: "Assistant", sans-serif; font-weight: 700; font-size: 40px; line-height: 1.2; }
   p { font-size: 28px; line-height: 1.45; }
   .rodape { position: absolute; left: 128px; right: 128px; bottom: 56px; display: flex; justify-content: space-between; font-family: "Fahkwang", sans-serif; font-size: 20px; letter-spacing: 5px; text-transform: uppercase; color: var(--ouro-escuro); }
-  .escuro .rodape { color: #A88B66; }
+  .escuro .rodape { color: #D9C6A6; }
   .ico { width: 80px; height: 80px; stroke: var(--dourado); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
   .claro .ico, .creme .ico { stroke: var(--ouro-escuro); }
   .anel { position: absolute; border-radius: 50%; border: 3px solid var(--dourado); opacity: .35; }
   .disco { position: absolute; border-radius: 50%; }
+  .selo-logo { position: absolute; top: 84px; right: 128px; height: 74px; }
 
   /* capa */
-  .capa { justify-content: center; gap: 42px; background: radial-gradient(circle at 78% 40%, #5C4030 0%, #3A281C 38%, #24170F 72%); }
+  .capa { justify-content: center; gap: 42px; background: radial-gradient(circle at 78% 40%, #8A7A66 0%, #74665A 40%, #645748 78%); }
   .marca { font-family: "Fahkwang", sans-serif; font-weight: 500; font-size: 46px; letter-spacing: 26px; color: var(--dourado); }
   .capa p { font-size: 34px; color: var(--rose); width: 980px; }
 
@@ -48,7 +49,7 @@
   .linha5 .card h3 { font-size: 34px; }
   .linha5 .card p { font-size: 26px; }
   .linha5 .num { font-size: 88px; }
-  .card { flex: 1; background: var(--creme); border-radius: 18px; padding: 52px 44px; border-top: 10px solid var(--dourado); box-shadow: 0 18px 40px rgba(36,23,15,.10); display: flex; flex-direction: column; gap: 18px; }
+  .card { flex: 1; background: var(--creme); border-radius: 18px; padding: 52px 44px; border-top: 10px solid var(--dourado); box-shadow: 0 18px 40px rgba(74,64,52,.10); display: flex; flex-direction: column; gap: 18px; }
   .card p { font-size: 30px; color: var(--texto-suave); }
   .card.destaque { background: var(--marrom); color: var(--creme); }
   .card.destaque p { color: var(--rose-claro); }
@@ -73,8 +74,8 @@
 
   /* frase */
   .frase { justify-content: center; gap: 48px; }
-  .frase h1 { font-size: 128px; width: 1560px; color: var(--espresso); }
-  .frase h1 em { color: var(--creme); }
+  .frase h1 { font-size: 128px; width: 1560px; color: #4A4034; }
+  .frase h1 em { color: #93703E; }
 
   /* plano */
   .plano { display: grid; grid-template-columns: 760px 1fr; gap: 80px; align-items: center; height: 100%; }
@@ -102,7 +103,7 @@
   .horario span { font-size: 28px; color: var(--texto-suave); }
 
   /* cta */
-  .cta { justify-content: center; gap: 40px; background: radial-gradient(circle at 85% 70%, #5C4030 0%, #3A281C 40%, #24170F 75%); }
+  .cta { justify-content: center; gap: 40px; background: radial-gradient(circle at 85% 70%, #8A7A66 0%, #74665A 42%, #645748 80%); }
   .contatos { display: grid; grid-template-columns: auto auto; gap: 26px 80px; width: 1300px; }
   .contato { display: flex; align-items: center; gap: 22px; font-size: 34px; font-weight: 600; color: var(--creme); }
   .botao { display: inline-flex; align-items: center; gap: 18px; background: var(--dourado); color: var(--espresso); font-family: "Fahkwang", sans-serif; font-weight: 600; font-size: 28px; letter-spacing: 4px; text-transform: uppercase; padding: 26px 44px; border-radius: 60px; width: fit-content; }
@@ -112,10 +113,10 @@
 
 <!-- 1. Capa -->
 <section class="slide escuro capa">
-  <div class="anel" style="width:1100px;height:1100px;right:-380px;top:-260px"></div>
-  <div class="anel" style="width:760px;height:760px;right:-210px;top:-90px;opacity:.22"></div>
-  <div class="disco" style="width:520px;height:520px;right:200px;bottom:-220px;background:radial-gradient(circle,#C9A06355 0%,#C9A06300 70%)"></div>
-  <div class="marca">ORYA</div>
+  
+  
+  <img src="logo/orya_monograma_clara.png" alt="" style="position:absolute;right:60px;top:150px;height:800px;opacity:.13">
+  <img src="logo/orya_horizontal_clara.png" alt="ORYA by Dra Danielly Pinheiro" style="width:560px">
   <div class="barra"></div>
   <h1 style="width:1250px">Realce a sua beleza. <em>Sem perder a sua essência.</em></h1>
   <p>Estética avançada com a Dra. Danielly Pinheiro: avaliação individual, plano feito para você e resultado natural.</p>
@@ -124,6 +125,7 @@
 
 <!-- 2. A dor -->
 <section class="slide claro" style="justify-content:space-between">
+  <img class="selo-logo" src="logo/orya_monograma.png" alt="">
   <div style="display:flex;flex-direction:column;gap:22px">
     <div class="sobre">Por que você está aqui</div>
     <h2 style="width:1500px">Quando o espelho não mostra <em>como você se sente.</em></h2>
@@ -149,6 +151,7 @@
 
 <!-- 3. Dra. Danielly -->
 <section class="slide escuro">
+  <img class="selo-logo" src="logo/orya_monograma_clara.png" alt="">
   <div class="anel" style="width:900px;height:900px;left:-520px;bottom:-460px;opacity:.25"></div>
   <div class="dra">
     <div style="display:flex;flex-direction:column;gap:30px">
@@ -184,6 +187,7 @@
 
 <!-- 4. Jornada -->
 <section class="slide claro" style="justify-content:space-between">
+  <img class="selo-logo" src="logo/orya_monograma.png" alt="">
   <div style="display:flex;flex-direction:column;gap:22px">
     <div class="sobre">Como funciona</div>
     <h2 style="font-size:88px">A sua jornada <em>em 5 etapas</em></h2>
@@ -199,6 +203,7 @@
 
 <!-- 5. Metodologias -->
 <section class="slide creme" style="justify-content:space-between">
+  <img class="selo-logo" src="logo/orya_monograma.png" alt="">
   <div style="display:flex;flex-direction:column;gap:22px">
     <div class="sobre">Metodologias exclusivas</div>
     <h2 style="font-size:88px">Um método <em>para cada objetivo</em></h2>
@@ -215,13 +220,14 @@
 
 <!-- 6. Frase -->
 <section class="slide ouro frase">
-  <div class="anel" style="width:1200px;height:1200px;right:-500px;top:-300px;border-color:#24170F;opacity:.18"></div>
-  <div class="barra" style="background:var(--espresso)"></div>
+  <img src="logo/orya_monograma.png" alt="" style="position:absolute;right:70px;top:130px;height:820px;opacity:.10">
+  <div class="barra" style="background:#6B5E4E"></div>
   <h1>Realçar quem você é. <em>Nunca transformar você em outra pessoa.</em></h1>
 </section>
 
 <!-- 7. Plano anual -->
 <section class="slide escuro">
+  <img class="selo-logo" src="logo/orya_monograma_clara.png" alt="">
   <div class="plano">
     <div style="display:flex;flex-direction:column;gap:26px">
       <div class="sobre">Plano Olhar Leve Anual</div>
@@ -241,6 +247,7 @@
 
 <!-- 8. Diferenciais -->
 <section class="slide escuro" style="background:var(--marrom);justify-content:space-between">
+  <img class="selo-logo" src="logo/orya_monograma_clara.png" alt="">
   <div style="display:flex;flex-direction:column;gap:22px">
     <div class="sobre">Por que a ORYA</div>
     <h2>O que você pode <em>esperar de nós</em></h2>
@@ -253,11 +260,12 @@
     <div class="dif"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l4 4 10-10"/></svg><h3>Retorno incluso</h3><p>Retorno em 15 dias nos injetáveis para acompanhar o seu resultado.</p></div>
     <div class="dif"><svg class="ico" viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg><h3>Acolhimento</h3><p>Do primeiro “oi” ao pós-procedimento, você é acompanhada de perto.</p></div>
   </div>
-  <p style="font-size:22px;color:#BFA48C;font-style:italic">Os resultados variam de pessoa para pessoa e dependem da avaliação individual.</p>
+  <p style="font-size:22px;color:#E3D3BD;font-style:italic">Os resultados variam de pessoa para pessoa e dependem da avaliação individual.</p>
 </section>
 
 <!-- 9. Unidades -->
 <section class="slide claro" style="justify-content:space-between">
+  <img class="selo-logo" src="logo/orya_monograma.png" alt="">
   <div style="display:flex;flex-direction:column;gap:22px">
     <div class="sobre">Onde atendemos</div>
     <h2>Perto de você, <em>em três regiões</em></h2>
@@ -287,7 +295,9 @@
 
 <!-- 10. CTA -->
 <section class="slide escuro cta">
-  <div class="anel" style="width:1000px;height:1000px;right:-360px;bottom:-420px"></div>
+  
+  <img src="logo/orya_monograma_clara.png" alt="" style="position:absolute;right:90px;top:150px;height:780px;opacity:.13">
+  <img src="logo/orya_horizontal_clara.png" alt="ORYA by Dra Danielly Pinheiro" style="width:420px">
   <div class="sobre">Próximo passo</div>
   <h1 style="font-size:116px;width:1300px">Vamos cuidar <em>de você?</em></h1>
   <p style="color:var(--rose);font-size:34px;width:1100px">Responda por aqui e a gente encontra o melhor dia, horário e unidade para a sua avaliação com a Dra. Danielly.</p>
