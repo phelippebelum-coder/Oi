@@ -2,7 +2,7 @@
 
 O bot só informa o que estiver aqui. O que tiver [PREENCHER] ou não estiver na lista, ele diz que vai confirmar e avisa o Phelippe.
 
-## Condições de pagamento (valem para todos os procedimentos com valor abaixo)
+## Condições de pagamento (valem para os procedimentos com valor abaixo, exceto as campanhas que tiverem condição própria)
 - Até 10x sem juros no cartão.
 - Ou 10% de desconto no Pix ou dinheiro (os valores com desconto já estão calculados abaixo).
 
@@ -23,6 +23,12 @@ O bot só informa o que estiver aqui. O que tiver [PREENCHER] ou não estiver na
 - Limpeza de pele: R$ 150 (ou R$ 135 no Pix/dinheiro).
 - Drenagem linfática: R$ 229 por sessão (ou R$ 206,10 no Pix/dinheiro).
 - Drenagem linfática, pacote com 5 sessões: R$ 1.037 em até 10x sem juros (ou R$ 933,30 no Pix/dinheiro). Sai mais em conta que 5 sessões avulsas (R$ 1.145).
+- Laser Lavieen (CAMPANHA ATUAL, condição própria, não aplique os 10x nem os 10% de desconto da regra geral):
+  - 1 sessão: R$ 390 à vista.
+  - Pacote com 3 sessões: R$ 997, em até 5x sem juros (R$ 199,40 por mês). Sai bem mais em conta que 3 avulsas (R$ 1.170).
+  - Se ela quiser parcelar a sessão avulsa, mostre que o pacote é o que parcela e sai mais vantajoso; se insistir, diga que vai confirmar e use `avisar_equipe`.
+  - O que é (explique simples, sem prometer resultado): laser que melhora o viço, a textura, os poros e as manchas da pele, com recuperação rápida (a pele pode ficar um pouco avermelhada por alguns dias). O número de sessões e o intervalo a Dra. Danielly define conforme a pele.
+  - Antes de agendar, faça a triagem normal e pergunte também: tem tendência a manchas ou queloide, está bronzeada ou tomando sol, usa ácido ou isotretinoína (Roacutan), está gestante ou amamentando.
 
 ## Procedimentos SEM valor por mensagem (só na avaliação com a Dra. Danielly)
 Não informe valor, nem "a partir de". Explique que dependem da análise do rosto/corpo dela e convide para a avaliação (R$ 200, abatidos se fechar):
