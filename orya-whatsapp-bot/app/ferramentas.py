@@ -2,7 +2,7 @@
 
 from datetime import date, datetime, timedelta
 
-from . import agenda, config, db, equipe, midia, whatsapp
+from . import agenda, config, db, equipe, google_agenda, midia, whatsapp
 
 # Fotos que o bot pediu para enviar nesta resposta (o processador envia depois dos balões de texto).
 anexos_pendentes: dict[str, list[str]] = {}
@@ -195,7 +195,7 @@ async def executar(nome: str, entrada: dict, telefone: str) -> str:
     if nome == "atualizar_ficha":
         return _atualizar_ficha(contato, entrada)
     if nome == "ver_horarios":
-        return _ver_horarios(entrada)
+        return await _ver_horarios(entrada)
     if nome == "agendar_avaliacao":
         return await _agendar(contato, entrada)
     if nome == "remarcar_ou_cancelar":
@@ -243,7 +243,11 @@ def _atualizar_ficha(contato: dict, entrada: dict) -> str:
     return "Ficha atualizada."
 
 
-def _ver_horarios(entrada: dict) -> str:
+async def _ocupados_google() -> list:
+    return await google_agenda.ocupados(*agenda.janela_busca())
+
+
+async def _ver_horarios(entrada: dict) -> str:
     a_partir = None
     if entrada.get("a_partir_de"):
         try:
@@ -257,7 +261,7 @@ def _ver_horarios(entrada: dict) -> str:
         return (f"A agenda da unidade {agenda.nome_unidade(unidade)} é sob consulta. Pergunte o dia e o período "
                 "que ela prefere, diga que vai confirmar com a agenda da Dra. e use avisar_equipe com essa "
                 "preferência. Ofereça também, como alternativa, horários no Jardim São Paulo.")
-    livres = agenda.horarios_livres(unidade, a_partir, entrada.get("periodo"))
+    livres = agenda.horarios_livres(unidade, a_partir, entrada.get("periodo"), ocupados=await _ocupados_google())
     if not livres:
         return "Sem horários livres nesse filtro. Tente outro período, outra data ou outra unidade."
     linhas = [f"{s.isoformat()} | {agenda.descrever(s)}" for s in livres]
@@ -289,19 +293,24 @@ async def _agendar(contato: dict, entrada: dict) -> str:
     unidade = entrada.get("unidade") or agenda.UNIDADE_PADRAO
     if not inicio:
         return "Data inválida. Use o ISO exatamente como veio de ver_horarios."
-    motivo = agenda.validar_horario(inicio, unidade)
+    google_agenda.limpar_cache()
+    motivo = agenda.validar_horario(inicio, unidade, await _ocupados_google())
     if motivo:
         return f"Não foi possível agendar: {motivo}. Consulte ver_horarios de novo e ofereça outras opções."
     forma = entrada.get("forma_pagamento") or "a_definir"
     ag_id = db.criar_agendamento(tel, inicio.isoformat(), prof, entrada.get("procedimento_interesse"),
                                  entrada.get("resumo_para_equipe"), forma, unidade)
+    prazo = agenda.prazo_pagamento(inicio)
+    db.atualizar_agendamento(ag_id, prazo_pagamento=prazo.isoformat())
+    await _criar_evento_google(ag_id, contato, inicio, unidade, entrada)
     db.atualizar_contato(tel, status="agendado", temperatura="quente", etapa="confirmacao")
     quando = agenda.descrever(inicio)
     await equipe.notificar(
         tel, "agendamento",
         f"✅ Nova avaliação agendada pelo bot\n{_rotulo_contato(contato)}\n"
         f"{quando} com {agenda.PROFISSIONAIS[prof]}, unidade {agenda.nome_unidade(unidade)}\nInteresse: {entrada.get('procedimento_interesse')}\n"
-        f"💳 Avaliação R$ 200: pagamento PENDENTE ({ {'pix': 'Pix', 'cartao': 'link de cartão'}.get(forma, 'forma a definir') })\n\n"
+        f"💳 Avaliação R$ 200: pagamento PENDENTE ({ {'pix': 'Pix', 'cartao': 'link de cartão'}.get(forma, 'forma a definir') }), "
+        f"prazo {prazo.strftime('%d/%m às %H:%M')}\n\n"
         f"{entrada.get('resumo_para_equipe', '')}",
     )
     clid = (contato.get("referral") or {}).get("ctwa_clid")
@@ -310,7 +319,8 @@ async def _agendar(contato: dict, entrada: dict) -> str:
     return (
         f"Agendado (id {ag_id}): {quando} ({inicio.strftime('%d/%m/%Y %H:%M')}) com {agenda.PROFISSIONAIS[prof]}, "
         f"unidade {agenda.nome_unidade(unidade)}. "
-        "Agora siga com o pagamento antecipado da avaliação (Pix ou link de cartão), depois o cadastro "
+        f"Prazo do pagamento antecipado: até {_quando_prazo(prazo)} (sem pagamento até lá, o horário é cancelado "
+        "automaticamente). Agora siga com o pagamento (Pix ou link de cartão), depois o cadastro "
         "(nome, sobrenome e e-mail) se ainda faltar, e confirme com ela: data, hora, endereço "
         f"({agenda.endereco_unidade(unidade) or 'o endereço completo dessa unidade a equipe envia na confirmação'}), "
         "nome da Dra. e orientações "
@@ -327,6 +337,7 @@ async def _remarcar(contato: dict, entrada: dict) -> str:
         return f"Agendamento não encontrado para esta cliente. Ativos: {list(ags) or 'nenhum'}."
     if entrada["acao"] == "cancelar":
         db.atualizar_agendamento(ag["id"], status="cancelado")
+        await _cancelar_evento_google(ag)
         db.atualizar_contato(tel, status="qualificado")
         await equipe.notificar(tel, "cancelamento",
                                f"❌ Avaliação cancelada pela cliente\n{_rotulo_contato(contato)}\n"
@@ -335,14 +346,58 @@ async def _remarcar(contato: dict, entrada: dict) -> str:
     novo = _parse_inicio(entrada.get("novo_inicio"))
     if not novo:
         return "Para remarcar, informe novo_inicio no formato ISO de ver_horarios."
-    motivo = agenda.validar_horario(novo, ag.get("unidade") or agenda.UNIDADE_PADRAO)
+    google_agenda.limpar_cache()
+    ocupados = [o for o in await _ocupados_google() if o[0] != _parse_inicio(ag["inicio"])]
+    motivo = agenda.validar_horario(novo, ag.get("unidade") or agenda.UNIDADE_PADRAO, ocupados)
     if motivo:
         return f"Não foi possível remarcar: {motivo}. Consulte ver_horarios de novo."
-    db.atualizar_agendamento(ag["id"], inicio=novo.isoformat(), lembrete_d1=0, lembrete_2h=0)
+    campos = {"inicio": novo.isoformat(), "lembrete_d1": 0, "lembrete_2h": 0}
+    if ag.get("pagamento") != "pago":
+        campos.update(prazo_pagamento=agenda.prazo_pagamento(novo).isoformat(), lembrete_pagamento=0)
+    db.atualizar_agendamento(ag["id"], **campos)
+    if ag.get("google_evento_id"):
+        try:
+            await google_agenda.mover_evento(ag["google_evento_id"], novo, config.carregar_agenda()["duracao_min"])
+        except Exception:
+            db.criar_aviso(tel, "google_agenda", f"Não consegui mover o evento no Google Agenda ({_rotulo_contato(contato)}).")
     await equipe.notificar(tel, "remarcacao",
                            f"🔁 Avaliação remarcada\n{_rotulo_contato(contato)}\n"
                            f"De: {agenda.descrever(_parse_inicio(ag['inicio']))}\nPara: {agenda.descrever(novo)}")
-    return f"Remarcado para {agenda.descrever(novo)}. Confirme com ela."
+    extra = ""
+    if ag.get("pagamento") != "pago":
+        extra = f" O pagamento antecipado continua pendente: prazo até {_quando_prazo(agenda.prazo_pagamento(novo))}."
+    return f"Remarcado para {agenda.descrever(novo)}. Confirme com ela.{extra}"
+
+
+def _quando_prazo(prazo: datetime) -> str:
+    return f"{agenda.descrever(prazo).split(' às')[0]} às {prazo.strftime('%H:%M')}"
+
+
+async def _criar_evento_google(ag_id: int, contato: dict, inicio: datetime, unidade: str, entrada: dict):
+    if not google_agenda.configurado():
+        return
+    f = contato["ficha"]
+    nome = f.get("nome_completo") or f.get("nome") or contato.get("perfil_nome") or contato["telefone"]
+    try:
+        evento_id = await google_agenda.criar_evento(
+            f"Avaliação · {nome} · {entrada.get('procedimento_interesse') or ''}".strip(" ·"),
+            f"WhatsApp: +{contato['telefone']}\nUnidade: {agenda.nome_unidade(unidade)}\n"
+            f"Pagamento: pendente (R$ 200)\n\n{entrada.get('resumo_para_equipe') or ''}\n\nAgendado pelo bot da ORYA.",
+            inicio, config.carregar_agenda()["duracao_min"],
+            agenda.endereco_unidade(unidade) or agenda.nome_unidade(unidade),
+        )
+        db.atualizar_agendamento(ag_id, google_evento_id=evento_id)
+    except Exception:
+        db.criar_aviso(contato["telefone"], "google_agenda",
+                       f"Avaliação de {nome} agendada, mas não consegui criar o evento no Google Agenda.")
+
+
+async def _cancelar_evento_google(ag: dict):
+    if ag.get("google_evento_id"):
+        try:
+            await google_agenda.cancelar_evento(ag["google_evento_id"])
+        except Exception:
+            db.criar_aviso(ag["telefone"], "google_agenda", "Não consegui apagar o evento cancelado no Google Agenda.")
 
 
 def _apresentacao(contato: dict) -> str:

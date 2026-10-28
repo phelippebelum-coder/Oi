@@ -11,7 +11,8 @@ from anthropic.types.beta import BetaTextBlock, BetaToolUseBlock
 
 from datetime import timedelta
 
-from app import agenda, cerebro, config, db, ferramentas, midia, processador, relatorio, rotinas, whatsapp
+from app import (agenda, cerebro, config, db, ferramentas, google_agenda, midia, processador, relatorio, rotinas,
+                 whatsapp)
 
 
 @pytest.fixture(autouse=True)
@@ -418,7 +419,7 @@ def test_unidades_compartilham_a_agenda_da_dra(monkeypatch):
     assert agenda.validar_horario(slot, "tatuape") == "horário já ocupado"
     assert slot not in agenda.horarios_livres("tatuape")
     # Jardins sem expediente: sob consulta
-    assert "sob consulta" in f._ver_horarios({"unidade": "jardins"})
+    assert "sob consulta" in asyncio.run(f._ver_horarios({"unidade": "jardins"}))
     assert "sob consulta" in agenda.validar_horario(slot, "jardins")
 
 
@@ -443,3 +444,82 @@ def test_prompt_plano_anual_e_unidades():
     p = cerebro.prompt_sistema()
     for trecho in ("R$ 3.080", "Plano Olhar Leve Anual", "Método Essência ORYA", "Tatuapé", "enviar_apresentacao"):
         assert trecho in p
+
+
+def test_prazo_de_pagamento():
+    from datetime import datetime
+    agora = datetime(2026, 11, 2, 10, 0, tzinfo=config.TZ)
+    # marcou com antecedência: até 24 h antes
+    assert agenda.prazo_pagamento(datetime(2026, 11, 5, 15, 0, tzinfo=config.TZ), agora) == \
+        datetime(2026, 11, 4, 15, 0, tzinfo=config.TZ)
+    # marcou para o mesmo dia: até 3 h antes
+    assert agenda.prazo_pagamento(datetime(2026, 11, 2, 18, 0, tzinfo=config.TZ), agora) == \
+        datetime(2026, 11, 2, 15, 0, tzinfo=config.TZ)
+    # marcou para amanhã cedo (menos de 25 h): também até 3 h antes
+    assert agenda.prazo_pagamento(datetime(2026, 11, 3, 9, 0, tzinfo=config.TZ), agora) == \
+        datetime(2026, 11, 3, 6, 0, tzinfo=config.TZ)
+
+
+def test_lembrete_e_cancelamento_automatico_sem_pagamento(monkeypatch):
+    tel = "teste-pag"
+    db.garantir_contato(tel, "teste")
+    db.atualizar_contato(tel, status="agendado", ficha={"nome": "Lu"}, ultima_msg_cliente_em=db.agora_iso())
+    inicio = db.agora() + timedelta(hours=26)
+    ag = db.criar_agendamento(tel, inicio.astimezone(config.TZ).isoformat(), "danielly", "botox", "r", "pix")
+    criado = (db.agora() - timedelta(hours=3)).isoformat()
+    db.atualizar_agendamento(ag, criado_em=criado, prazo_pagamento=(db.agora() + timedelta(hours=1)).isoformat())
+    asyncio.run(rotinas.pagamentos())
+    assert "Lu, passando pra lembrar" in db.obter_conversa(tel)[-1]["texto"]
+    assert db.listar_avisos()[0]["tipo"] == "pagamento"
+    asyncio.run(rotinas.pagamentos())  # não repete o lembrete
+    assert len(db.obter_conversa(tel)) == 1
+    # passou do prazo: cancela, libera o horário e avisa
+    db.atualizar_agendamento(ag, prazo_pagamento=(db.agora() - timedelta(minutes=1)).isoformat())
+    asyncio.run(rotinas.pagamentos())
+    assert db.agendamentos_ativos(tel) == []
+    assert db.obter_contato(tel)["status"] == "qualificado"
+    assert "liberou o seu horário" in db.obter_conversa(tel)[-1]["texto"]
+    assert "cancelada automaticamente" in db.listar_avisos()[0]["texto"]
+
+
+def test_pago_nao_cancela():
+    tel = "teste-pago"
+    db.garantir_contato(tel, "teste")
+    ag = db.criar_agendamento(tel, (db.agora() + timedelta(hours=5)).isoformat(), "danielly", "botox", "r", "pix")
+    db.atualizar_agendamento(ag, pagamento="pago", prazo_pagamento=(db.agora() - timedelta(hours=1)).isoformat())
+    asyncio.run(rotinas.pagamentos())
+    assert len(db.agendamentos_ativos(tel)) == 1
+
+
+def test_google_agenda_bloqueia_e_recebe_evento(monkeypatch):
+    slots = agenda.horarios_livres()
+    ocupado = slots[0]
+    criados = []
+
+    async def ocupados(ini, fim):
+        return [(ocupado, ocupado + timedelta(minutes=30))]
+
+    async def criar(titulo, descricao, inicio, dur, local):
+        criados.append((titulo, inicio, local, "Pagamento: pendente" in descricao))
+        return "EVT1"
+
+    monkeypatch.setattr(google_agenda, "configurado", lambda: True)
+    monkeypatch.setattr(google_agenda, "ocupados", ocupados)
+    monkeypatch.setattr(google_agenda, "criar_evento", criar)
+    texto_horarios = asyncio.run(ferramentas._ver_horarios({"unidade": "jardim_sao_paulo"}))
+    assert ocupado.isoformat() not in texto_horarios
+    tel = "5511966665555"
+    db.garantir_contato(tel)
+    db.atualizar_contato(tel, ficha={"nome_completo": "Rita Alves"})
+    r = asyncio.run(ferramentas.executar("agendar_avaliacao", {
+        "inicio": ocupado.isoformat(), "unidade": "jardim_sao_paulo", "procedimento_interesse": "botox",
+        "resumo_para_equipe": "x"}, tel))
+    assert "ocupado no Google Agenda" in r
+    livre = next(s for s in slots[1:])
+    r = asyncio.run(ferramentas.executar("agendar_avaliacao", {
+        "inicio": livre.isoformat(), "unidade": "jardim_sao_paulo", "procedimento_interesse": "botox",
+        "resumo_para_equipe": "x", "forma_pagamento": "pix"}, tel))
+    assert r.startswith("Agendado") and "Prazo do pagamento" in r
+    assert criados == [("Avaliação · Rita Alves · botox", livre, "Rua Viri, 62, Jardim São Paulo, São Paulo/SP (CEP 02046-030)", True)]
+    ag = db.agendamentos_ativos(tel)[0]
+    assert ag["google_evento_id"] == "EVT1" and ag["prazo_pagamento"]

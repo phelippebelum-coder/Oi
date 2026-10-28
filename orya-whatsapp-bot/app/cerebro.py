@@ -44,7 +44,8 @@ def _instrucoes_pagamento() -> str:
 def _descrever_unidades() -> str:
     linhas = []
     for chave, u in agenda.unidades().items():
-        endereco = u.get("endereco") or "endereço completo enviado pela equipe na confirmação"
+        endereco = u.get("endereco") or ("atendimento em consultório na região; o local exato depende do consultório "
+                                          "disponível e a equipe confirma o endereço com ela")
         sob_consulta = "" if agenda.agenda_aberta(chave) else " Horários nessa unidade: sob consulta."
         linhas.append(f"  - {u['nome']} ({chave}): {endereco}, {u.get('referencia', '')}.{sob_consulta}")
     return "\n".join(linhas)

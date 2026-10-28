@@ -52,8 +52,30 @@ def _ocupacao() -> dict[str, int]:
     return ocup
 
 
+Intervalo = tuple[datetime, datetime]
+
+
+def _conflita(slot: datetime, dur: timedelta, ocupados: list[Intervalo]) -> bool:
+    return any(slot < fim and slot + dur > ini for ini, fim in ocupados)
+
+
+def janela_busca() -> tuple[datetime, datetime]:
+    agora = datetime.now(config.TZ)
+    return agora, agora + timedelta(days=_cfg()["dias_a_frente"] + 1)
+
+
+def prazo_pagamento(inicio: datetime, criado: datetime | None = None) -> datetime:
+    """Até 24 h antes; se marcou em cima da hora (sem pelo menos 1 h para pagar), até 3 h antes."""
+    criado = criado or datetime.now(config.TZ)
+    prazo = inicio - timedelta(hours=config.PAGAMENTO_PRAZO_HORAS)
+    if prazo < criado + timedelta(hours=1):
+        prazo = inicio - timedelta(hours=config.PAGAMENTO_PRAZO_CURTO_HORAS)
+    return prazo
+
+
 def horarios_livres(unidade: str = UNIDADE_PADRAO, a_partir: date | None = None,
-                    periodo: str | None = None, limite: int = 8) -> list[datetime]:
+                    periodo: str | None = None, limite: int = 8,
+                    ocupados: list[Intervalo] | None = None) -> list[datetime]:
     cfg = _cfg()
     agora = datetime.now(config.TZ)
     minimo = agora + timedelta(hours=cfg["antecedencia_min_horas"])
@@ -71,6 +93,7 @@ def horarios_livres(unidade: str = UNIDADE_PADRAO, a_partir: date | None = None,
                     slot >= minimo
                     and not _bloqueado(cfg, slot)
                     and ocup.get(slot.isoformat(), 0) < cfg["avaliacoes_simultaneas"]
+                    and not _conflita(slot, dur, ocupados or [])
                     and _no_periodo(slot, periodo)
                 ):
                     livres.append(slot)
@@ -114,7 +137,8 @@ def descrever(slot: datetime) -> str:
     return f"{rotulo} ({slot.strftime('%d/%m')}) às {hora}"
 
 
-def validar_horario(inicio: datetime, unidade: str = UNIDADE_PADRAO) -> str | None:
+def validar_horario(inicio: datetime, unidade: str = UNIDADE_PADRAO,
+                    ocupados: list[Intervalo] | None = None) -> str | None:
     """Retorna None se o horário estiver livre, senão o motivo."""
     cfg = _cfg()
     if unidade not in cfg["unidades"]:
@@ -137,4 +161,6 @@ def validar_horario(inicio: datetime, unidade: str = UNIDADE_PADRAO) -> str | No
         return "fora do horário de atendimento dessa unidade"
     if _ocupacao().get(inicio.isoformat(), 0) >= cfg["avaliacoes_simultaneas"]:
         return "horário já ocupado"
+    if _conflita(inicio, dur, ocupados or []):
+        return "horário ocupado no Google Agenda"
     return None

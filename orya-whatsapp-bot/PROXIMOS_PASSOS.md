@@ -2,7 +2,7 @@
 
 ## Pronto
 - Código completo nesta pasta (branch `orya-whatsapp-bot`): webhook da Meta, cérebro com o roteiro SDR da ORYA, ficha/categorização, agenda, passagem para a equipe, lembretes, follow-up, página de teste (`/teste`), painel (`/painel`) e teste automático de qualidade (`avaliar.py`).
-- 23 testes técnicos passando. O formato da chamada ao Claude foi conferido.
+- 27 testes técnicos passando. O formato da chamada ao Claude foi conferido.
 - Ainda NÃO testado com o Claude de verdade (faltava a chave da API).
 
 ## Próximo passo: testar na página de teste
@@ -35,18 +35,19 @@
 - Plano Olhar Leve Anual: botox terço superior 4x/ano, R$ 3.080 (30% off) em 10x de R$ 308.
 - Pix: CNPJ 67.898.906/0001-46. Relatórios para Phelippe.belum@blmengenharia.com.br.
 
+## Atualizado (28/10, parte 4)
+- PDF aprovado; Tatuapé e Jardins sem endereço (consultório conforme disponibilidade, equipe confirma).
+- Pagamento até 24 h antes (ou 3 h antes se em cima da hora); lembrete + cancelamento automático.
+- Google Agenda (oryaesteticavancada@gmail.com) via conta de serviço: lê ocupados e cria eventos.
+- E-mail sai pelo Gmail da ORYA (senha de app); relatórios para ORYA + BLM.
+- Grupo VIP configurado. Face completa anual e blefaro: sem valor por mensagem. Link de cartão: equipe envia.
+
 ## Informações que faltam (Phelippe)
-- [ ] Endereços das unidades Tatuapé e Jardins + dias/horários da Dra. em cada uma
-- [ ] Aprovar o PDF e os nomes das metodologias
-- [ ] Plano anual: vale também para face completa (R$ 3.920 com 30%)? Tem desconto extra no Pix?
-- [ ] Senha do e-mail Phelippe.belum@blmengenharia.com.br (vai só na variável SMTP_SENHA do Railway)
-- [ ] Link de cartão: fixo (bot envia) ou a equipe gera para cada cliente?
-- [ ] Avaliação sem pagamento: cancelar o horário depois de quantas horas?
-- [ ] Fotos de antes e depois (botox, harmonização facial, labial, glútea): subir pelo painel
-- [ ] Promoções do mês → `prompts/promocoes.md`
-- [ ] Link do grupo VIP → variável `GRUPO_VIP_LINK`
-- [ ] Blefaro plasma: confirmar R$ 1.000 (10x) / R$ 900 no Pix
-- [ ] Chave da API do Claude + conta no Railway (para o primeiro teste real)
+- [ ] TROCAR a senha da conta Google da ORYA (foi enviada no chat)
+- [ ] Criar a conta de serviço do Google Agenda e a senha de app do Gmail (passo a passo no README, Passo 4)
+- [ ] Chave da API do Claude + conta no Railway (primeiro teste real)
+- [ ] Fotos de antes e depois (painel) e promoções do mês (`prompts/promocoes.md`)
+- [ ] Dias em que a Dra. costuma estar no Tatuapé e nos Jardins (opcional; hoje é sob consulta)
 
 ## Depois de aprovar o comportamento
 - Ligar no WhatsApp: Meta Business verificado, app no Meta for Developers, número (11) 2959-3266 em coexistência, webhook com `messages` e `smb_message_echoes` (passo a passo no README).

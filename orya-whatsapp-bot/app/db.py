@@ -102,6 +102,10 @@ def iniciar():
             con.execute("ALTER TABLE agendamentos ADD COLUMN pagamento TEXT NOT NULL DEFAULT 'pendente'")
         if "forma_pagamento" not in colunas:
             con.execute("ALTER TABLE agendamentos ADD COLUMN forma_pagamento TEXT")
+        for coluna, tipo in (("prazo_pagamento", "TEXT"), ("lembrete_pagamento", "INTEGER NOT NULL DEFAULT 0"),
+                             ("google_evento_id", "TEXT")):
+            if coluna not in colunas:
+                con.execute(f"ALTER TABLE agendamentos ADD COLUMN {coluna} {tipo}")
         if "unidade" not in colunas:
             con.execute("ALTER TABLE agendamentos ADD COLUMN unidade TEXT NOT NULL DEFAULT 'jardim_sao_paulo'")
 

@@ -45,6 +45,17 @@ PIX_CHAVE = _env("PIX_CHAVE")
 PIX_FAVORECIDO = _env("PIX_FAVORECIDO", "ORYA Estética Avançada")
 LINK_CARTAO = _env("LINK_CARTAO")
 
+# Prazo do pagamento antecipado: até 24 h antes; marcando em cima da hora, até 3 h antes.
+# Sem pagamento no prazo, o horário é cancelado automaticamente (0 desliga o cancelamento).
+PAGAMENTO_PRAZO_HORAS = float(_env("PAGAMENTO_PRAZO_HORAS", "24"))
+PAGAMENTO_PRAZO_CURTO_HORAS = float(_env("PAGAMENTO_PRAZO_CURTO_HORAS", "3"))
+CANCELAR_SEM_PAGAMENTO = _env("CANCELAR_SEM_PAGAMENTO", "1") == "1"
+TEMPLATE_PAGAMENTO = _env("TEMPLATE_PAGAMENTO")  # {{1}} nome, {{2}} prazo (dd/mm às hh:mm)
+
+# Google Agenda (conta de serviço com acesso de edição à agenda da ORYA)
+GOOGLE_CALENDAR_ID = _env("GOOGLE_CALENDAR_ID")
+GOOGLE_SERVICE_ACCOUNT_JSON = _env("GOOGLE_SERVICE_ACCOUNT_JSON")
+
 # Fotos de antes e depois
 LEGENDA_ANTES_DEPOIS = _env(
     "LEGENDA_ANTES_DEPOIS",
@@ -88,7 +99,7 @@ DB_PATH = DATA_DIR / "orya.db"
 _SEG_A_SAB = {str(d): [["08:00", "20:00"]] for d in range(6)}  # 0 = segunda ... 6 = domingo
 AGENDA_PADRAO = {
     "duracao_min": 30,
-    "antecedencia_min_horas": 2,
+    "antecedencia_min_horas": 4,  # dá tempo de pagar até 3 h antes
     "dias_a_frente": 14,
     "avaliacoes_simultaneas": 1,
     "bloqueios": [],  # ex.: ["2026-11-02", "2026-11-15 14:00"]

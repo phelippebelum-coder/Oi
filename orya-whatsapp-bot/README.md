@@ -17,7 +17,8 @@ O bot faz o pré-atendimento da ORYA 24 horas por dia no WhatsApp oficial (Cloud
 - **Antes e depois**: vocês sobem uma foto por procedimento (botox, harmonização facial, labial, harmonização glútea) na aba "Antes e depois" do painel; o bot envia como referência quando a cliente demonstra interesse, com a legenda de autorização.
 - **Pagamento antecipado da avaliação** (Pix ou link de cartão): o bot pergunta a preferência, envia a chave/link (se configurados) ou avisa a equipe para enviar. No painel, cada avaliação mostra "pagamento pendente" até vocês marcarem como pago.
 - **Promoções do mês**: escreva em `prompts/promocoes.md`; o bot usa nos follow-ups, no resgate e na conversa.
-- **Três unidades** (Jardim São Paulo, Tatuapé e Jardins): a cliente escolhe; a agenda da Dra. é única, então um horário ocupado numa unidade some das outras. Unidade sem expediente cadastrado fica "sob consulta" (o bot avisa a equipe).
+- **Três unidades** (Jardim São Paulo, Tatuapé e Jardins): a cliente escolhe; a agenda da Dra. é única, então um horário ocupado numa unidade some das outras. No Tatuapé e nos Jardins o consultório depende da disponibilidade, então ficam "sob consulta" (o bot anota a preferência e avisa a equipe, que confirma local e horário).
+- **Prazo do pagamento**: a avaliação precisa ser paga até 24 h antes (ou até 3 h antes, se marcada em cima da hora). O bot explica o prazo, lembra a cliente 2 h antes do prazo, avisa a equipe para marcar "pago" no painel e, sem pagamento, cancela o horário sozinho (também no Google Agenda).
 - **Apresentação em PDF** (`materiais/apresentacao_orya.pdf`): a Dra., a jornada em 5 etapas, as metodologias, o Plano Olhar Leve Anual e as unidades. O bot envia quando a cliente quer entender como funciona. Para mudar o texto, edite `materiais/apresentacao.html` e rode `node materiais/gerar_pdf.js`, ou suba outro PDF no painel.
 - **Entende fotos** e pede com naturalidade pra escrever quando recebe áudio.
 - **Reconhece clientes antigas** (importe a lista no painel) e já fala de manutenção.
@@ -98,6 +99,20 @@ Se faltar o template de alguma etapa, o bot não envia e deixa um aviso no paine
 - `TEMPLATE_AVISO_EQUIPE`, exemplo: `Aviso do atendimento ORYA: {{1}}` (para a equipe receber avisos mesmo sem conversa aberta com o número).
 
 Sem template, o lembrete só sai se a cliente falou nas últimas 24h; os demais ficam como aviso no painel.
+
+## Passo 4 · Google Agenda e e-mail da ORYA
+
+**Google Agenda** (o bot lê os horários ocupados e cria um evento para cada avaliação; férias, bloqueios e compromissos que vocês colocarem na agenda deixam de ser oferecidos):
+
+1. Entre em https://console.cloud.google.com com a conta da ORYA e crie um projeto (ex.: "orya-bot").
+2. Em *APIs e serviços → Biblioteca*, ative a **Google Calendar API**.
+3. Em *APIs e serviços → Credenciais → Criar credenciais → Conta de serviço*, crie a conta (ex.: "orya-agenda"). Depois, na conta criada, aba *Chaves → Adicionar chave → JSON*. Um arquivo `.json` será baixado.
+4. Abra o Google Agenda da ORYA → *Configurações da agenda* → *Compartilhar com pessoas específicas* → adicione o e-mail da conta de serviço (termina em `@...iam.gserviceaccount.com`) com a permissão **Fazer alterações nos eventos**.
+5. No Railway, cole o conteúdo inteiro do `.json` em `GOOGLE_SERVICE_ACCOUNT_JSON` e deixe `GOOGLE_CALENDAR_ID=oryaesteticavancada@gmail.com`.
+
+Nunca coloque a senha da conta Google no bot: ele não precisa dela.
+
+**E-mail (relatórios)**: ative a verificação em duas etapas na conta da ORYA e crie uma **senha de app** em https://myaccount.google.com/apppasswords. Cole essa senha de 16 letras em `SMTP_SENHA` no Railway.
 
 ## Ajustes do dia a dia
 

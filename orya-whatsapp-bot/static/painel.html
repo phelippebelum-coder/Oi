@@ -160,7 +160,7 @@ async function renderAgenda() {
   $('#ags').innerHTML = ags.filter(a => $('#fTeste').checked || !a.telefone.startsWith('teste-')).map(a => `<tr>
     <td><b>${dt(a.inicio)}</b></td><td>${esc(porTel[a.telefone] ? nome(porTel[a.telefone]) : a.telefone)}<br><small>${esc(a.telefone)}</small></td>
     <td>${esc(a.procedimento)}<br><small>unidade: ${esc(a.unidade || 'jardim_sao_paulo')} · pagamento: ${esc(a.forma_pagamento || '-')}</small></td>
-    <td><span class="etq">${esc(a.status)}</span><span class="etq ${a.pagamento === 'pago' ? 'cliente' : 'quente'}">${a.pagamento === 'pago' ? 'pago' : 'pagamento pendente'}</span></td>
+    <td><span class="etq">${esc(a.status)}</span><span class="etq ${a.pagamento === 'pago' ? 'cliente' : 'quente'}">${a.pagamento === 'pago' ? 'pago' : 'pagamento pendente'}</span>${a.pagamento !== 'pago' && a.prazo_pagamento ? `<br><small>prazo: ${dt(a.prazo_pagamento)}</small>` : ''}</td>
     <td>${a.pagamento !== 'pago' ? `<button class="acao" onclick="pagoAg(${a.id})">marcar pago</button>` : ''}${['compareceu', 'faltou', 'cancelado'].map(s => `<button class="acao sec" onclick="statusAg(${a.id},'${s}')">${s}</button>`).join('')}</td></tr>`).join('')
     || '<tr><td colspan="5" class="vazio">Nenhuma avaliação.</td></tr>';
 }

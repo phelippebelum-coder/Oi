@@ -17,6 +17,7 @@ ROTULO_TIPO = {
     "humano": "Conversa passada para a equipe",
     "cancelamento": "Avaliação cancelada",
     "remarcacao": "Avaliação remarcada",
+    "pagamento": "Pagamento de avaliação pendente",
 }
 
 

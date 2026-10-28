@@ -4,7 +4,7 @@ import asyncio
 import logging
 from datetime import datetime, timedelta
 
-from . import agenda, config, db, processador, relatorio, whatsapp
+from . import agenda, config, db, equipe, google_agenda, processador, relatorio, whatsapp
 
 log = logging.getLogger("orya.rotinas")
 
@@ -53,6 +53,7 @@ async def laco():
         try:
             if config.LEMBRETES_ATIVOS:
                 await lembretes()
+            await pagamentos()
             if config.FOLLOWUP_ATIVO:
                 await followups()
             await relatorio.relatorio_diario_se_for_hora()
@@ -89,6 +90,73 @@ async def _enviar_lembrete(contato: dict, ag: dict, texto: str):
     db.registrar_conversa(tel, "bot", texto)
     if db.obter_historico(tel):
         db.adicionar_historico(tel, "assistant", [{"type": "text", "text": texto}])
+
+
+async def _mensagem_cliente(contato: dict, texto: str, template: str | None = None, parametros=None) -> bool:
+    """Mensagem automática para a cliente: texto livre dentro da janela de 24h, senão template."""
+    tel = contato["telefone"]
+    if contato["canal"] == "whatsapp" and whatsapp.configurado():
+        if _dentro_da_janela(contato):
+            await whatsapp.enviar_texto(tel, texto)
+        elif template:
+            await whatsapp.enviar_template(tel, template, parametros or [])
+        else:
+            return False
+    db.registrar_conversa(tel, "bot", texto)
+    if db.obter_historico(tel):
+        db.adicionar_historico(tel, "assistant", [{"type": "text", "text": texto}])
+    return True
+
+
+async def pagamentos():
+    """Lembra do pagamento antecipado e cancela automaticamente o horário que passou do prazo."""
+    agora = db.agora()
+    for ag in db.agendamentos_ativos():
+        if ag.get("pagamento") == "pago" or not ag.get("prazo_pagamento"):
+            continue
+        prazo = datetime.fromisoformat(ag["prazo_pagamento"])
+        contato = db.obter_contato(ag["telefone"])
+        if not contato:
+            continue
+        nome = _nome(contato)
+        quando_prazo = prazo.astimezone(config.TZ).strftime("%d/%m às %H:%M")
+        inicio = datetime.fromisoformat(ag["inicio"]).astimezone(config.TZ)
+        rotulo = f"{nome} (+{ag['telefone']}), avaliação {agenda.descrever(inicio)}"
+
+        if agora >= prazo:
+            if not config.CANCELAR_SEM_PAGAMENTO:
+                continue
+            db.atualizar_agendamento(ag["id"], status="cancelado")
+            db.atualizar_contato(ag["telefone"], status="qualificado")
+            if ag.get("google_evento_id"):
+                try:
+                    await google_agenda.cancelar_evento(ag["google_evento_id"])
+                except Exception:
+                    log.warning("Falha ao apagar evento do Google", exc_info=True)
+            await _mensagem_cliente(
+                contato,
+                f"Oi, {nome}! Como não identificamos o pagamento da avaliação dentro do prazo, o sistema liberou o "
+                "seu horário. Mas fica tranquila: se quiser, a gente encontra um novo horário pra você agora mesmo 🤍",
+            )
+            await equipe.notificar(ag["telefone"], "cancelamento",
+                                   f"⏰ Avaliação cancelada automaticamente por falta de pagamento\n{rotulo}")
+            continue
+
+        criado_ha = agora - datetime.fromisoformat(ag["criado_em"])
+        if not ag.get("lembrete_pagamento") and prazo - agora <= timedelta(hours=2) and criado_ha > timedelta(hours=1):
+            db.atualizar_agendamento(ag["id"], lembrete_pagamento=1)
+            enviado = await _mensagem_cliente(
+                contato,
+                f"{nome}, passando pra lembrar: pra garantir o seu horário com a Dra. Danielly, o pagamento da "
+                f"avaliação precisa ser feito até {quando_prazo}. Se já fez, é só me mandar o comprovante por aqui 🤍",
+                config.TEMPLATE_PAGAMENTO, [nome, quando_prazo],
+            )
+            await equipe.notificar(
+                ag["telefone"], "pagamento",
+                f"💳 Pagamento pendente: {rotulo}. Prazo {quando_prazo}. Se já recebeu, marque como pago no painel, "
+                "senão o horário será cancelado automaticamente." + ("" if enviado else
+                                                                       "\n(Lembrete à cliente não enviado: fora da janela de 24h e sem TEMPLATE_PAGAMENTO.)"),
+            )
 
 
 async def lembretes():
