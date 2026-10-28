@@ -22,7 +22,9 @@ async def notificar(telefone: str | None, tipo: str, texto: str):
             # Fora da janela de 24 h o WhatsApp só aceita template aprovado.
             if config.TEMPLATE_AVISO_EQUIPE:
                 try:
-                    await whatsapp.enviar_template(numero, config.TEMPLATE_AVISO_EQUIPE, [texto[:900]])
+                    # Parâmetro de template não aceita quebra de linha.
+                    linha = " | ".join(p.strip() for p in texto.splitlines() if p.strip())
+                    await whatsapp.enviar_template(numero, config.TEMPLATE_AVISO_EQUIPE, [linha[:900]])
                     continue
                 except Exception:
                     pass
