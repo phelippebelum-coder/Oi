@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORYA · Teste do bot</title>
+<style>
+  :root { --dourado:#b08d57; --rose:#e8cfc6; --marrom:#5b4636; --areia:#f4ede4; --branco:#fff; --verde:#d9fdd3; --cinza:#8a7f76; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--areia); color: var(--marrom); }
+  header { padding: 12px 16px; background: var(--marrom); color: var(--branco); display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size: 16px; margin:0; font-weight:600; letter-spacing:.5px; }
+  header a { color: var(--rose); font-size: 13px; margin-left:auto; }
+  .grade { display:grid; grid-template-columns: minmax(0,1fr) 340px; gap:16px; padding:16px; max-width:1100px; margin:0 auto; }
+  @media (max-width: 800px) { .grade { grid-template-columns: 1fr; } }
+  .cartao { background: var(--branco); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .config { padding: 12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:13px; }
+  .config input[type=text] { padding:6px 8px; border:1px solid #ddd; border-radius:6px; font-size:13px; }
+  button { background: var(--dourado); color: var(--branco); border:0; border-radius:8px; padding:8px 12px; font-size:13px; cursor:pointer; }
+  button.sec { background: var(--areia); color: var(--marrom); border:1px solid #e2d6c8; }
+  #chat { height: 60vh; min-height: 360px; overflow-y:auto; padding:16px; background:#efe7dd; display:flex; flex-direction:column; gap:6px; }
+  .msg { max-width: 80%; padding: 8px 10px; border-radius: 8px; font-size: 14.5px; line-height:1.35; white-space: pre-wrap; box-shadow: 0 1px 1px rgba(0,0,0,.06); }
+  .cliente { align-self:flex-end; background: var(--verde); }
+  .bot { align-self:flex-start; background: var(--branco); }
+  .equipe { align-self:flex-start; background: #fff4d6; }
+  .sistema { align-self:center; background: transparent; color: var(--cinza); font-size: 12px; box-shadow:none; }
+  .msg small { display:block; color: var(--cinza); font-size: 11px; margin-top: 3px; text-align:right; }
+  #digitando { color: var(--cinza); font-size: 13px; padding: 0 16px 8px; height: 20px; background:#efe7dd; }
+  form { display:flex; gap:8px; padding: 10px; border-top: 1px solid #eee; }
+  form input { flex:1; padding:10px 12px; border-radius:20px; border:1px solid #ddd; font-size:15px; }
+  aside { padding: 14px; font-size: 13px; }
+  aside h2 { font-size: 14px; margin: 0 0 8px; color: var(--dourado); text-transform: uppercase; letter-spacing: 1px; }
+  .etq { display:inline-block; padding: 2px 8px; border-radius: 10px; background: var(--rose); margin: 0 4px 4px 0; font-size: 12px; }
+  .quente { background:#f6c1b5; } .morna { background:#f6e3b5; } .fria { background:#cfe0ef; }
+  dl { margin: 8px 0 0; } dt { font-weight:600; margin-top:6px; } dd { margin: 0; color: #4a3b2f; white-space: pre-wrap; word-break: break-word; }
+  .dica { color: var(--cinza); font-size: 12px; padding: 0 16px 16px; max-width:1100px; margin: 0 auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ORYA · Teste do atendimento automático</h1>
+  <a href="/painel">Abrir painel de leads →</a>
+</header>
+<div class="grade">
+  <div class="cartao">
+    <div class="config">
+      <label>Cliente: <input type="text" id="nome" value="Carla" size="10"></label>
+      <label>ID: <input type="text" id="tel" size="8"></label>
+      <label><input type="checkbox" id="retorno"> já é cliente</label>
+      <label>Veio do anúncio: <input type="text" id="anuncio" placeholder="(opcional) título do anúncio" size="22"></label>
+      <button class="sec" id="btnFollow" title="Finge que ela sumiu por horas">Simular sumiço</button>
+      <button class="sec" id="btnNova">Nova conversa</button>
+    </div>
+    <div id="chat"></div>
+    <div id="digitando"></div>
+    <form id="f"><input id="txt" autocomplete="off" placeholder="Escreva como se fosse a cliente..."><button>Enviar</button></form>
+  </div>
+  <aside class="cartao">
+    <h2>Ficha / categorização</h2>
+    <div id="ficha">Mande a primeira mensagem para começar.</div>
+  </aside>
+</div>
+<p class="dica">Aqui é o mesmo cérebro do WhatsApp, só que sem enviar nada para a Meta. O bot espera alguns segundos antes de responder (para juntar mensagens seguidas, como uma pessoa real). Agendamentos feitos aqui entram no painel com o ID "teste-...".</p>
+<script>
+const $ = s => document.querySelector(s);
+const chat = $('#chat');
+let ultimo = 0, telefone = null;
+const aleat = () => Math.random().toString(36).slice(2, 7);
+$('#tel').value = localStorage.getItem('orya_tel') || aleat();
+
+function idTel() { return 'teste-' + $('#tel').value.replace(/[^a-z0-9]/gi, '').slice(0, 20); }
+
+function bolha(autor, texto, hora) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + autor;
+  d.textContent = texto;
+  if (hora) { const s = document.createElement('small'); s.textContent = new Date(hora).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) + (autor === 'equipe' ? ' · equipe' : ''); d.appendChild(s); }
+  chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+}
+
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function renderFicha(c, ags) {
+  const f = c.ficha || {};
+  const etqs = [
+    `<span class="etq">${c.tipo === 'cliente' ? 'Cliente de retorno' : 'Lead novo'}</span>`,
+    `<span class="etq">status: ${esc(c.status)}</span>`,
+    c.temperatura ? `<span class="etq ${c.temperatura}">${esc(c.temperatura)}</span>` : '',
+    c.etapa ? `<span class="etq">etapa: ${esc(c.etapa)}</span>` : '',
+    c.origem ? `<span class="etq">origem: ${esc(c.origem)}</span>` : '',
+    c.bot_pausado ? `<span class="etq quente">bot pausado</span>` : '',
+  ].join('');
+  const campos = Object.entries(f).map(([k, v]) => `<dt>${esc(k.replace(/_/g, ' '))}</dt><dd>${esc(Array.isArray(v) ? v.join(', ') : v)}</dd>`).join('');
+  const agHtml = ags.filter(a => a.status === 'agendado').map(a => `<dt>📅 Avaliação</dt><dd>${new Date(a.inicio).toLocaleString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})} · ${esc(a.profissional)}\n${esc(a.procedimento)}</dd><dt>Resumo para a Dra.</dt><dd>${esc(a.resumo)}</dd>`).join('');
+  $('#ficha').innerHTML = etqs + '<dl>' + (campos || '<dd>(nada registrado ainda)</dd>') + agHtml + '</dl>';
+}
+
+async function atualizar() {
+  if (!telefone) return;
+  try {
+    const r = await fetch(`/api/contatos/${telefone}?depois_de=${ultimo}`);
+    if (r.ok) {
+      const d = await r.json();
+      for (const m of d.conversa) { if (m.autor !== 'cliente') bolha(m.autor, m.texto, m.criado_em); ultimo = m.id; }
+      renderFicha(d.contato, d.agendamentos);
+      $('#digitando').textContent = d.processando ? 'digitando...' : '';
+    }
+  } catch (e) {}
+}
+setInterval(atualizar, 1500);
+
+$('#f').onsubmit = async ev => {
+  ev.preventDefault();
+  const texto = $('#txt').value.trim();
+  if (!texto) return;
+  $('#txt').value = '';
+  localStorage.setItem('orya_tel', $('#tel').value);
+  bolha('cliente', texto, new Date().toISOString());
+  const r = await fetch('/api/teste/enviar', { method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ telefone: $('#tel').value, texto, nome: $('#nome').value || null,
+      cliente_retorno: $('#retorno').checked, anuncio: $('#anuncio').value || null }) });
+  const d = await r.json();
+  telefone = d.telefone;
+  $('#digitando').textContent = 'digitando...';
+};
+
+$('#btnNova').onclick = async () => {
+  await fetch('/api/teste/reiniciar', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ telefone: $('#tel').value, texto: '' }) });
+  $('#tel').value = aleat(); localStorage.setItem('orya_tel', $('#tel').value);
+  chat.innerHTML = ''; ultimo = 0; telefone = null; $('#ficha').textContent = 'Mande a primeira mensagem para começar.';
+};
+
+$('#btnFollow').onclick = async () => {
+  if (!telefone) return;
+  bolha('sistema', '(simulando que a cliente ficou horas sem responder...)');
+  $('#digitando').textContent = 'digitando...';
+  await fetch(`/api/teste/followup/${telefone}`, { method: 'POST' });
+};
+
+// retoma conversa salva
+(async () => {
+  const t = idTel();
+  const r = await fetch(`/api/contatos/${t}`);
+  if (r.ok) {
+    telefone = t;
+    const d = await r.json();
+    for (const m of d.conversa) { bolha(m.autor, m.texto, m.criado_em); ultimo = m.id; }
+    renderFicha(d.contato, d.agendamentos);
+  }
+})();
+</script>
+</body>
+</html>

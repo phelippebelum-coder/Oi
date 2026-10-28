@@ -1,0 +1,6 @@
+data/
+data-avaliacao/
+relatorio_avaliacao.md
+.env
+__pycache__/
+.pytest_cache/

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORYA · Painel de leads</title>
+<style>
+  :root { --dourado:#b08d57; --rose:#e8cfc6; --marrom:#5b4636; --areia:#f4ede4; --branco:#fff; --cinza:#8a7f76; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--areia); color: var(--marrom); font-size: 14px; }
+  header { padding: 12px 16px; background: var(--marrom); color: var(--branco); display:flex; gap:16px; align-items:center; flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin:0; font-weight:600; }
+  header a { color: var(--rose); font-size: 13px; }
+  nav { display:flex; gap:6px; padding: 12px 16px 0; flex-wrap: wrap; }
+  nav button { background: var(--branco); color: var(--marrom); border: 1px solid #e2d6c8; border-radius: 8px 8px 0 0; padding: 8px 14px; cursor:pointer; font-size: 14px; }
+  nav button.ativo { background: var(--dourado); color: var(--branco); border-color: var(--dourado); }
+  main { padding: 0 16px 24px; }
+  .cartao { background: var(--branco); border-radius: 0 12px 12px 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 12px; }
+  .resumo { display:flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .resumo div { background: var(--areia); border-radius: 10px; padding: 8px 12px; min-width: 110px; }
+  .resumo b { display:block; font-size: 20px; color: var(--dourado); }
+  .filtros { display:flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  select, input, textarea { padding: 6px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: inherit; }
+  .tabela { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid #f0e8de; vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; color: var(--cinza); letter-spacing: .5px; }
+  tr.lin { cursor: pointer; } tr.lin:hover { background: #faf6f1; }
+  .etq { display:inline-block; padding: 2px 8px; border-radius: 10px; background: var(--rose); font-size: 12px; margin: 1px 2px 1px 0; }
+  .quente { background:#f6c1b5; } .morna { background:#f6e3b5; } .fria { background:#cfe0ef; }
+  .cliente { background:#d8ead2; }
+  button.acao { background: var(--dourado); color: var(--branco); border:0; border-radius: 8px; padding: 6px 10px; cursor:pointer; font-size: 13px; margin: 2px; }
+  button.sec { background: var(--areia); color: var(--marrom); border: 1px solid #e2d6c8; }
+  #detalhe { position: fixed; inset: 0 0 0 auto; width: min(560px, 100%); background: var(--branco); box-shadow: -4px 0 20px rgba(0,0,0,.15); padding: 16px; overflow-y: auto; display:none; }
+  #detalhe h2 { margin: 0 0 6px; font-size: 18px; }
+  dl { margin: 8px 0; } dt { font-weight: 600; margin-top: 6px; font-size: 13px; } dd { margin: 0; white-space: pre-wrap; word-break: break-word; }
+  .conv { background:#efe7dd; border-radius: 10px; padding: 10px; display:flex; flex-direction: column; gap: 5px; max-height: 50vh; overflow-y: auto; }
+  .m { max-width: 85%; padding: 6px 9px; border-radius: 8px; white-space: pre-wrap; font-size: 13.5px; }
+  .m.cliente { align-self:flex-end; background:#d9fdd3; } .m.bot { background: var(--branco); } .m.equipe { background:#fff4d6; } .m.sistema { align-self: center; color: var(--cinza); font-size: 12px; }
+  .vazio { color: var(--cinza); padding: 20px; text-align:center; }
+  .nao-lido { font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ORYA · Painel de leads</h1>
+  <a href="/teste">Página de teste</a>
+</header>
+<nav>
+  <button data-aba="leads" class="ativo">Leads e clientes</button>
+  <button data-aba="agenda">Avaliações</button>
+  <button data-aba="avisos">Avisos <span id="nAvisos"></span></button>
+  <button data-aba="importar">Importar clientes</button>
+</nav>
+<main>
+  <section id="aba-leads" class="cartao">
+    <div class="resumo" id="resumo"></div>
+    <div class="filtros">
+      <input id="busca" placeholder="Buscar nome, telefone, interesse...">
+      <select id="fTipo"><option value="">Todos os tipos</option><option value="lead">Leads novos</option><option value="cliente">Clientes de retorno</option></select>
+      <select id="fStatus"><option value="">Todos os status</option><option>novo</option><option>em_conversa</option><option>qualificado</option><option>agendado</option><option>humano</option><option>perdido</option><option>opt_out</option></select>
+      <select id="fTemp"><option value="">Qualquer temperatura</option><option>quente</option><option>morna</option><option>fria</option></select>
+      <label><input type="checkbox" id="fTeste"> mostrar testes</label>
+    </div>
+    <div class="tabela"><table><thead><tr><th>Contato</th><th>Categoria</th><th>Interesse / queixa</th><th>Última atividade</th></tr></thead><tbody id="linhas"></tbody></table></div>
+  </section>
+  <section id="aba-agenda" class="cartao" hidden><div class="tabela"><table><thead><tr><th>Quando</th><th>Cliente</th><th>Profissional / interesse</th><th>Status</th><th></th></tr></thead><tbody id="ags"></tbody></table></div></section>
+  <section id="aba-avisos" class="cartao" hidden><button class="acao sec" id="lerTodos">Marcar todos como lidos</button><div id="avisos"></div></section>
+  <section id="aba-importar" class="cartao" hidden>
+    <p>Cole uma lista de clientes que já são da ORYA (CSV com cabeçalho). Quando elas mandarem mensagem, o bot reconhece como cliente de retorno e já fala de manutenção.</p>
+    <textarea id="csv" rows="10" style="width:100%" placeholder="telefone,nome,ultimo_procedimento,data_ultimo_procedimento&#10;11999998888,Maria Souza,toxina,2026-06-10"></textarea>
+    <p><button class="acao" id="btnImp">Importar</button> <span id="impRes"></span></p>
+  </section>
+</main>
+<div id="detalhe"></div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const dt = iso => iso ? new Date(iso).toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-';
+let contatos = [], aberto = null;
+
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('ativo', x === b));
+  document.querySelectorAll('main section').forEach(s => s.hidden = s.id !== 'aba-' + b.dataset.aba);
+  carregar();
+});
+
+function nome(c) { const f = c.ficha || {}; return f.nome_completo || f.nome || c.perfil_nome || 'Sem nome'; }
+
+function etiquetas(c) {
+  return `<span class="etq ${c.tipo === 'cliente' ? 'cliente' : ''}">${c.tipo === 'cliente' ? 'cliente' : 'lead'}</span>` +
+    `<span class="etq">${esc(c.status)}</span>` +
+    (c.temperatura ? `<span class="etq ${c.temperatura}">${esc(c.temperatura)}</span>` : '') +
+    (c.origem ? `<span class="etq">${esc(c.origem)}</span>` : '') +
+    (c.bot_pausado ? `<span class="etq quente">bot pausado</span>` : '');
+}
+
+function renderLeads() {
+  const busca = $('#busca').value.toLowerCase();
+  const lista = contatos.filter(c =>
+    ($('#fTeste').checked || c.canal !== 'teste') &&
+    (!$('#fTipo').value || c.tipo === $('#fTipo').value) &&
+    (!$('#fStatus').value || c.status === $('#fStatus').value) &&
+    (!$('#fTemp').value || c.temperatura === $('#fTemp').value) &&
+    (!busca || JSON.stringify(c).toLowerCase().includes(busca)));
+  const base = contatos.filter(c => $('#fTeste').checked || c.canal !== 'teste');
+  const n = f => base.filter(f).length;
+  $('#resumo').innerHTML = [['Contatos', n(() => true)], ['Leads novos', n(c => c.tipo === 'lead')], ['Clientes', n(c => c.tipo === 'cliente')],
+    ['Quentes', n(c => c.temperatura === 'quente')], ['Agendadas', n(c => c.status === 'agendado')], ['Com a equipe', n(c => c.status === 'humano' || c.bot_pausado)]]
+    .map(([t, v]) => `<div><b>${v}</b>${t}</div>`).join('');
+  $('#linhas').innerHTML = lista.map(c => `<tr class="lin" data-tel="${esc(c.telefone)}">
+    <td><b>${esc(nome(c))}</b><br><small>${esc(c.telefone)}</small></td>
+    <td>${etiquetas(c)}</td>
+    <td>${esc(c.interesses || '')}<br><small>${esc((c.ficha || {}).queixa || '')}</small></td>
+    <td>${dt(c.atualizado_em)}</td></tr>`).join('') || '<tr><td colspan="4" class="vazio">Nenhum contato ainda.</td></tr>';
+  document.querySelectorAll('tr.lin').forEach(tr => tr.onclick = () => abrir(tr.dataset.tel));
+}
+
+async function abrir(tel) {
+  aberto = tel;
+  const d = await (await fetch('/api/contatos/' + encodeURIComponent(tel))).json();
+  const c = d.contato, f = c.ficha || {};
+  $('#detalhe').style.display = 'block';
+  $('#detalhe').innerHTML = `<button class="acao sec" onclick="fechar()">✕ Fechar</button>
+    <h2>${esc(nome(c))}</h2><div>${esc(c.telefone)}</div><div style="margin:6px 0">${etiquetas(c)}</div>
+    <div>${c.bot_pausado ? `<button class="acao" onclick="acao('${esc(tel)}',{bot:'retomar'})">▶ Devolver para o bot</button>` : `<button class="acao" onclick="acao('${esc(tel)}',{bot:'pausar'})">⏸ Pausar bot (equipe assume)</button>`}
+    ${c.tipo === 'cliente' ? `<button class="acao sec" onclick="acao('${esc(tel)}',{tipo:'lead'})">Marcar como lead</button>` : `<button class="acao sec" onclick="acao('${esc(tel)}',{tipo:'cliente'})">Marcar como cliente</button>`}
+    <button class="acao sec" onclick="acao('${esc(tel)}',{status:'perdido'})">Marcar perdido</button></div>
+    <dl>${Object.entries(f).map(([k, v]) => `<dt>${esc(k.replace(/_/g, ' '))}</dt><dd>${esc(Array.isArray(v) ? v.join(', ') : v)}</dd>`).join('') || '<dd>Ficha vazia</dd>'}</dl>
+    ${d.agendamentos.map(a => `<dl><dt>📅 ${dt(a.inicio)} · ${esc(a.profissional)} · ${esc(a.status)}</dt><dd>${esc(a.resumo)}</dd></dl>`).join('')}
+    <h3>Conversa</h3><div class="conv">${d.conversa.map(m => `<div class="m ${m.autor}">${esc(m.texto)}<br><small>${dt(m.criado_em)}${m.autor === 'equipe' ? ' · equipe' : ''}</small></div>`).join('')}</div>`;
+  const conv = $('#detalhe .conv'); conv.scrollTop = conv.scrollHeight;
+}
+function fechar() { $('#detalhe').style.display = 'none'; aberto = null; }
+async function acao(tel, corpo) {
+  await fetch('/api/contatos/' + encodeURIComponent(tel), { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(corpo) });
+  await carregar(); abrir(tel);
+}
+
+async function renderAgenda() {
+  const ags = await (await fetch('/api/agendamentos')).json();
+  const porTel = Object.fromEntries(contatos.map(c => [c.telefone, c]));
+  $('#ags').innerHTML = ags.filter(a => $('#fTeste').checked || !a.telefone.startsWith('teste-')).map(a => `<tr>
+    <td><b>${dt(a.inicio)}</b></td><td>${esc(porTel[a.telefone] ? nome(porTel[a.telefone]) : a.telefone)}<br><small>${esc(a.telefone)}</small></td>
+    <td>${esc(a.profissional)}<br><small>${esc(a.procedimento)}</small></td><td><span class="etq">${esc(a.status)}</span></td>
+    <td>${['compareceu', 'faltou', 'cancelado'].map(s => `<button class="acao sec" onclick="statusAg(${a.id},'${s}')">${s}</button>`).join('')}</td></tr>`).join('')
+    || '<tr><td colspan="5" class="vazio">Nenhuma avaliação.</td></tr>';
+}
+async function statusAg(id, status) {
+  await fetch('/api/agendamentos/' + id, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ status }) });
+  renderAgenda();
+}
+
+async function renderAvisos() {
+  const avs = await (await fetch('/api/avisos')).json();
+  $('#avisos').innerHTML = avs.map(a => `<div class="${a.lido ? '' : 'nao-lido'}" style="border-bottom:1px solid #f0e8de;padding:8px 0;white-space:pre-wrap">
+    <small>${dt(a.criado_em)} · ${esc(a.tipo)}</small><br>${esc(a.texto)}${a.telefone ? `<br><button class="acao sec" onclick="abrir('${esc(a.telefone)}')">abrir conversa</button>` : ''}</div>`).join('') || '<p class="vazio">Sem avisos.</p>';
+}
+$('#lerTodos').onclick = async () => { await fetch('/api/avisos/lidos', { method: 'POST' }); carregar(); };
+
+$('#btnImp').onclick = async () => {
+  const r = await fetch('/api/importar-clientes', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ csv: $('#csv').value }) });
+  const d = await r.json(); $('#impRes').textContent = r.ok ? `${d.importados} clientes importados.` : 'Erro na importação.';
+};
+
+async function carregar() {
+  contatos = await (await fetch('/api/contatos')).json();
+  renderLeads();
+  if (!$('#aba-agenda').hidden) renderAgenda();
+  if (!$('#aba-avisos').hidden) renderAvisos();
+  const avs = await (await fetch('/api/avisos')).json();
+  const n = avs.filter(a => !a.lido).length; $('#nAvisos').textContent = n ? `(${n})` : '';
+}
+['#busca', '#fTipo', '#fStatus', '#fTemp', '#fTeste'].forEach(s => $(s).oninput = () => { renderLeads(); if (!$('#aba-agenda').hidden) renderAgenda(); });
+carregar(); setInterval(() => { carregar(); if (aberto) abrir(aberto); }, 15000);
+</script>
+</body>
+</html>
