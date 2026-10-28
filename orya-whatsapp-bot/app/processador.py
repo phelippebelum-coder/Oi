@@ -99,7 +99,7 @@ async def responder_e_enviar(tel: str, canal: str, blocos: list[dict], nota: str
             except Exception:
                 log.exception("Falha ao enviar foto %s para %s", proc, tel)
                 continue
-        db.registrar_conversa(tel, "bot", f"[foto:{proc}]")
+        db.registrar_conversa(tel, "bot", "[pdf:apresentacao]" if proc == "apresentacao" else f"[foto:{proc}]")
 
 
 async def receber_eco(evento: dict):

@@ -194,3 +194,10 @@ async def enviar_imagem(para: str, media_id: str, legenda: str = "") -> dict:
         "type": "image",
         "image": {"id": media_id, "caption": legenda},
     })
+
+
+async def enviar_documento(para: str, media_id: str, nome_arquivo: str, legenda: str = "") -> dict:
+    documento = {"id": media_id, "filename": nome_arquivo}
+    if legenda:
+        documento["caption"] = legenda
+    return await _post({"messaging_product": "whatsapp", "to": para, "type": "document", "document": documento})

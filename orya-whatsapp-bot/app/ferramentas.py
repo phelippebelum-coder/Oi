@@ -64,9 +64,11 @@ FERRAMENTAS = [
             "type": "object",
             "additionalProperties": False,
             "properties": {
+                "unidade": {"type": "string", "enum": ["jardim_sao_paulo", "tatuape", "jardins"], "description": "Unidade escolhida pela cliente"},
                 "a_partir_de": {"type": "string", "description": "Data AAAA-MM-DD (opcional)"},
                 "periodo": {"type": "string", "enum": ["manha", "tarde", "noite"]},
             },
+            "required": ["unidade"],
         },
     },
     {
@@ -80,6 +82,7 @@ FERRAMENTAS = [
             "additionalProperties": False,
             "properties": {
                 "inicio": {"type": "string", "description": "Data e hora ISO exatamente como veio de ver_horarios"},
+                "unidade": {"type": "string", "enum": ["jardim_sao_paulo", "tatuape", "jardins"], "description": "Unidade escolhida pela cliente"},
                 "procedimento_interesse": {"type": "string"},
                 "forma_pagamento": {"type": "string", "enum": ["pix", "cartao", "a_definir"]},
                 "resumo_para_equipe": {
@@ -90,7 +93,7 @@ FERRAMENTAS = [
                     ),
                 },
             },
-            "required": ["inicio", "procedimento_interesse", "resumo_para_equipe"],
+            "required": ["inicio", "unidade", "procedimento_interesse", "resumo_para_equipe"],
         },
     },
     {
@@ -107,6 +110,14 @@ FERRAMENTAS = [
             },
             "required": ["procedimento"],
         },
+    },
+    {
+        "name": "enviar_apresentacao",
+        "description": (
+            "Envia o PDF de apresentação da ORYA (Dra. Danielly, jornada em 5 etapas, metodologias, Plano Olhar Leve "
+            "Anual, unidades). Chega logo depois da sua mensagem. Uma vez por conversa."
+        ),
+        "input_schema": {"type": "object", "additionalProperties": False, "properties": {}},
     },
     {
         "name": "remarcar_ou_cancelar",
@@ -191,6 +202,8 @@ async def executar(nome: str, entrada: dict, telefone: str) -> str:
         return await _remarcar(contato, entrada)
     if nome == "transferir_para_humano":
         return await _transferir(contato, entrada)
+    if nome == "enviar_apresentacao":
+        return _apresentacao(contato)
     if nome == "enviar_antes_depois":
         return _antes_depois(contato, entrada)
     if nome == "solicitar_ligacao":
@@ -237,12 +250,19 @@ def _ver_horarios(entrada: dict) -> str:
             a_partir = date.fromisoformat(entrada["a_partir_de"])
         except ValueError:
             pass
-    prof = "danielly"
-    livres = agenda.horarios_livres(prof, a_partir, entrada.get("periodo"))
+    unidade = entrada.get("unidade") or agenda.UNIDADE_PADRAO
+    if unidade not in agenda.unidades():
+        return "Unidade desconhecida. Use jardim_sao_paulo, tatuape ou jardins."
+    if not agenda.agenda_aberta(unidade):
+        return (f"A agenda da unidade {agenda.nome_unidade(unidade)} é sob consulta. Pergunte o dia e o período "
+                "que ela prefere, diga que vai confirmar com a agenda da Dra. e use avisar_equipe com essa "
+                "preferência. Ofereça também, como alternativa, horários no Jardim São Paulo.")
+    livres = agenda.horarios_livres(unidade, a_partir, entrada.get("periodo"))
     if not livres:
-        return "Sem horários livres nesse filtro. Tente outro período ou outra data."
+        return "Sem horários livres nesse filtro. Tente outro período, outra data ou outra unidade."
     linhas = [f"{s.isoformat()} | {agenda.descrever(s)}" for s in livres]
-    return f"Horários livres com {agenda.PROFISSIONAIS[prof]} (ISO | como falar):\n" + "\n".join(linhas)
+    return (f"Horários livres com a Dra. Danielly na unidade {agenda.nome_unidade(unidade)} (ISO | como falar):\n"
+            + "\n".join(linhas))
 
 
 def _parse_inicio(texto: str) -> datetime | None:
@@ -266,20 +286,21 @@ async def _agendar(contato: dict, entrada: dict) -> str:
         )
     inicio = _parse_inicio(entrada.get("inicio"))
     prof = "danielly"
+    unidade = entrada.get("unidade") or agenda.UNIDADE_PADRAO
     if not inicio:
         return "Data inválida. Use o ISO exatamente como veio de ver_horarios."
-    motivo = agenda.validar_horario(inicio, prof)
+    motivo = agenda.validar_horario(inicio, unidade)
     if motivo:
         return f"Não foi possível agendar: {motivo}. Consulte ver_horarios de novo e ofereça outras opções."
     forma = entrada.get("forma_pagamento") or "a_definir"
     ag_id = db.criar_agendamento(tel, inicio.isoformat(), prof, entrada.get("procedimento_interesse"),
-                                 entrada.get("resumo_para_equipe"), forma)
+                                 entrada.get("resumo_para_equipe"), forma, unidade)
     db.atualizar_contato(tel, status="agendado", temperatura="quente", etapa="confirmacao")
     quando = agenda.descrever(inicio)
     await equipe.notificar(
         tel, "agendamento",
         f"✅ Nova avaliação agendada pelo bot\n{_rotulo_contato(contato)}\n"
-        f"{quando} com {agenda.PROFISSIONAIS[prof]}\nInteresse: {entrada.get('procedimento_interesse')}\n"
+        f"{quando} com {agenda.PROFISSIONAIS[prof]}, unidade {agenda.nome_unidade(unidade)}\nInteresse: {entrada.get('procedimento_interesse')}\n"
         f"💳 Avaliação R$ 200: pagamento PENDENTE ({ {'pix': 'Pix', 'cartao': 'link de cartão'}.get(forma, 'forma a definir') })\n\n"
         f"{entrada.get('resumo_para_equipe', '')}",
     )
@@ -287,9 +308,12 @@ async def _agendar(contato: dict, entrada: dict) -> str:
     if clid:
         await whatsapp.enviar_conversao("Schedule", clid)
     return (
-        f"Agendado (id {ag_id}): {quando} ({inicio.strftime('%d/%m/%Y %H:%M')}) com {agenda.PROFISSIONAIS[prof]}. "
+        f"Agendado (id {ag_id}): {quando} ({inicio.strftime('%d/%m/%Y %H:%M')}) com {agenda.PROFISSIONAIS[prof]}, "
+        f"unidade {agenda.nome_unidade(unidade)}. "
         "Agora siga com o pagamento antecipado da avaliação (Pix ou link de cartão), depois o cadastro "
-        "(nome, sobrenome e e-mail) se ainda faltar, e confirme com ela: data, hora, endereço (Rua Viri, 62, Jardim São Paulo), nome da Dra. e orientações "
+        "(nome, sobrenome e e-mail) se ainda faltar, e confirme com ela: data, hora, endereço "
+        f"({agenda.endereco_unidade(unidade) or 'o endereço completo dessa unidade a equipe envia na confirmação'}), "
+        "nome da Dra. e orientações "
         "(sem maquiagem se for facial, trazer o nome dos medicamentos, chegar 10 min antes). Se faltar algum dado do "
         "cadastro, peça de forma leve."
     )
@@ -311,7 +335,7 @@ async def _remarcar(contato: dict, entrada: dict) -> str:
     novo = _parse_inicio(entrada.get("novo_inicio"))
     if not novo:
         return "Para remarcar, informe novo_inicio no formato ISO de ver_horarios."
-    motivo = agenda.validar_horario(novo, ag["profissional"])
+    motivo = agenda.validar_horario(novo, ag.get("unidade") or agenda.UNIDADE_PADRAO)
     if motivo:
         return f"Não foi possível remarcar: {motivo}. Consulte ver_horarios de novo."
     db.atualizar_agendamento(ag["id"], inicio=novo.isoformat(), lembrete_d1=0, lembrete_2h=0)
@@ -319,6 +343,18 @@ async def _remarcar(contato: dict, entrada: dict) -> str:
                            f"🔁 Avaliação remarcada\n{_rotulo_contato(contato)}\n"
                            f"De: {agenda.descrever(_parse_inicio(ag['inicio']))}\nPara: {agenda.descrever(novo)}")
     return f"Remarcado para {agenda.descrever(novo)}. Confirme com ela."
+
+
+def _apresentacao(contato: dict) -> str:
+    if not midia.apresentacao():
+        return "A apresentação ainda não está disponível. Siga a conversa explicando a jornada em poucas linhas."
+    ficha = dict(contato["ficha"])
+    if ficha.get("apresentacao_enviada"):
+        return "A apresentação já foi enviada nesta conversa. Pode fazer referência a ela."
+    ficha["apresentacao_enviada"] = True
+    db.atualizar_contato(contato["telefone"], ficha=ficha)
+    anexos_pendentes.setdefault(contato["telefone"], []).append("apresentacao")
+    return "PDF programado: chega logo depois da sua mensagem. Escreva uma frase curta apresentando o material."
 
 
 def _antes_depois(contato: dict, entrada: dict) -> str:

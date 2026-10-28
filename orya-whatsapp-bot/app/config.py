@@ -71,7 +71,7 @@ FOLLOWUP_HORARIO = (int(_env("FOLLOWUP_HORA_INICIO", "9")), int(_env("FOLLOWUP_H
 FOLLOWUP_TEMPLATES = dict(x.split(":", 1) for x in _lista("FOLLOWUP_TEMPLATES") if ":" in x)
 GRUPO_VIP_LINK = _env("GRUPO_VIP_LINK")
 
-# Relatórios por e-mail (SMTP, ex.: Gmail com senha de app)
+# Relatórios por e-mail (SMTP; porta 465 usa SSL direto, 587 usa STARTTLS)
 SMTP_HOST = _env("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORTA = int(_env("SMTP_PORTA", "587"))
 SMTP_USUARIO = _env("SMTP_USUARIO")
@@ -83,16 +83,25 @@ TZ = ZoneInfo(_env("TZ_CLINICA", "America/Sao_Paulo"))
 DATA_DIR = Path(_env("DATA_DIR", str(BASE_DIR / "data")))
 DB_PATH = DATA_DIR / "orya.db"
 
-# Agenda da avaliação (sempre com a Dra. Danielly)
-_EXPEDIENTE = [["08:00", "20:00"]]
+# Agenda da avaliação (sempre com a Dra. Danielly). Cada unidade tem o seu expediente;
+# unidade sem expediente = horários sob consulta (o bot avisa a equipe para confirmar).
+_SEG_A_SAB = {str(d): [["08:00", "20:00"]] for d in range(6)}  # 0 = segunda ... 6 = domingo
 AGENDA_PADRAO = {
     "duracao_min": 30,
     "antecedencia_min_horas": 2,
     "dias_a_frente": 14,
-    # 0 = segunda ... 6 = domingo; lista de [início, fim] no horário da clínica
-    "expediente": {str(d): _EXPEDIENTE for d in range(6)},
     "avaliacoes_simultaneas": 1,
     "bloqueios": [],  # ex.: ["2026-11-02", "2026-11-15 14:00"]
+    "unidades": {
+        "jardim_sao_paulo": {
+            "nome": "Jardim São Paulo",
+            "endereco": "Rua Viri, 62, Jardim São Paulo, São Paulo/SP (CEP 02046-030)",
+            "referencia": "pertinho de Santana e do Shopping Center Norte",
+            "expediente": _SEG_A_SAB,
+        },
+        "tatuape": {"nome": "Tatuapé", "endereco": "", "referencia": "Zona Leste", "expediente": {}},
+        "jardins": {"nome": "Jardins", "endereco": "", "referencia": "região dos Jardins", "expediente": {}},
+    },
 }
 
 

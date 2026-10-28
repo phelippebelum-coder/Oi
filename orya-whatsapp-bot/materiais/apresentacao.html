@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>ORYA · Como funciona</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Fahkwang:wght@300;400;500&family=Assistant:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --dourado:#b08d57; --dourado-claro:#d9c19a; --rose:#e8cfc6; --marrom:#5b4636; --areia:#f4ede4; --branco:#fffdf9; }
+  @page { size: 1080px 1350px; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Assistant", sans-serif; color: var(--marrom); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pagina { width: 1080px; height: 1350px; padding: 110px 100px; position: relative; overflow: hidden; page-break-after: always; background: var(--branco); }
+  .pagina:last-child { page-break-after: auto; }
+  .areia { background: var(--areia); }
+  .escura { background: var(--marrom); color: var(--areia); }
+  .rotulo { font-family: "Fahkwang", sans-serif; font-size: 22px; letter-spacing: 6px; text-transform: uppercase; color: var(--dourado); }
+  h1 { font-family: "Playfair Display", serif; font-weight: 400; font-size: 92px; line-height: 1.08; }
+  h2 { font-family: "Playfair Display", serif; font-weight: 400; font-size: 64px; line-height: 1.15; margin: 22px 0 36px; }
+  h3 { font-family: "Playfair Display", serif; font-weight: 500; font-size: 36px; line-height: 1.15; }
+  p, li { font-size: 28px; line-height: 1.5; font-weight: 300; }
+  .fio { width: 120px; height: 2px; background: var(--dourado); margin: 40px 0; }
+  .rodape { position: absolute; left: 100px; right: 100px; bottom: 60px; display: flex; justify-content: space-between; font-family: "Fahkwang", sans-serif; font-size: 18px; letter-spacing: 4px; text-transform: uppercase; color: var(--dourado); }
+  .escura .rodape { color: var(--dourado-claro); }
+  .arco { position: absolute; border: 2px solid var(--dourado-claro); border-radius: 50%; opacity: .55; }
+
+  /* capa */
+  .capa { display: flex; flex-direction: column; justify-content: center; }
+  .capa .marca { font-family: "Fahkwang", sans-serif; font-size: 34px; letter-spacing: 18px; color: var(--dourado-claro); margin-bottom: 70px; }
+  .capa h1 { color: var(--areia); }
+  .capa h1 em { font-style: italic; color: var(--dourado-claro); }
+  .capa p { color: var(--rose); max-width: 720px; font-size: 32px; }
+
+  /* dra */
+  .credenciais { display: grid; gap: 26px; margin-top: 10px; }
+  .credencial { display: flex; gap: 28px; align-items: flex-start; padding: 30px 34px; background: var(--branco); border-left: 4px solid var(--dourado); }
+  .credencial b { font-family: "Fahkwang", sans-serif; font-weight: 500; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; color: var(--dourado); display: block; margin-bottom: 6px; }
+  .citacao { font-family: "Playfair Display", serif; font-style: italic; font-size: 42px; line-height: 1.3; margin-top: 50px; color: var(--marrom); }
+
+  /* passos */
+  .passos { display: grid; gap: 22px; }
+  .passo { display: grid; grid-template-columns: 96px 1fr; gap: 28px; align-items: start; padding-bottom: 22px; border-bottom: 1px solid var(--rose); }
+  .passo:last-child { border-bottom: 0; }
+  .num { font-family: "Playfair Display", serif; font-size: 84px; line-height: .9; color: var(--dourado); }
+  .passo h3 { margin-bottom: 6px; }
+  .passo p { font-size: 26px; }
+
+  /* metodologias */
+  .metodos { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .metodo { background: var(--branco); padding: 32px 30px; border-top: 3px solid var(--dourado); }
+  .metodo .area { font-family: "Fahkwang", sans-serif; font-size: 17px; letter-spacing: 3px; text-transform: uppercase; color: var(--dourado); margin-bottom: 10px; }
+  .metodo h3 { font-size: 36px; margin-bottom: 10px; }
+  .metodo p { font-size: 23px; line-height: 1.45; }
+
+  /* plano */
+  .plano { background: var(--branco); border: 2px solid var(--dourado); padding: 56px 60px; margin-top: 10px; }
+  .plano .selo { display: inline-block; background: var(--dourado); color: var(--branco); font-family: "Fahkwang", sans-serif; font-size: 20px; letter-spacing: 4px; text-transform: uppercase; padding: 10px 22px; margin-bottom: 28px; }
+  .plano ul { list-style: none; margin-top: 26px; }
+  .plano li { padding: 14px 0 14px 44px; position: relative; border-bottom: 1px solid var(--areia); }
+  .plano li::before { content: ""; position: absolute; left: 6px; top: 30px; width: 14px; height: 14px; border-radius: 50%; background: var(--rose); border: 2px solid var(--dourado); }
+  .destaque { font-family: "Playfair Display", serif; font-size: 64px; color: var(--dourado); line-height: 1; }
+
+  /* unidades */
+  .unidades { display: grid; gap: 26px; }
+  .unidade { padding: 36px 40px; background: var(--areia); display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 20px; }
+  .unidade h3 { margin-bottom: 6px; }
+  .unidade .tag { font-family: "Fahkwang", sans-serif; font-size: 17px; letter-spacing: 3px; text-transform: uppercase; color: var(--dourado); border: 1px solid var(--dourado); padding: 8px 16px; white-space: nowrap; }
+
+  /* compromissos */
+  .compromissos { display: grid; grid-template-columns: 1fr 1fr; gap: 30px 50px; margin-top: 10px; }
+  .compromisso h3 { font-size: 34px; margin-bottom: 8px; color: var(--marrom); }
+  .compromisso p { font-size: 25px; }
+  .aviso { margin-top: 60px; font-size: 22px; color: #8a7f76; font-style: italic; }
+
+  /* fechamento */
+  .fecho { display: flex; flex-direction: column; justify-content: center; }
+  .fecho h2 { color: var(--areia); font-size: 76px; }
+  .fecho p { color: var(--rose); }
+  .contato { margin-top: 60px; display: grid; gap: 18px; }
+  .contato div { font-size: 30px; color: var(--areia); }
+  .contato span { font-family: "Fahkwang", sans-serif; font-size: 18px; letter-spacing: 4px; text-transform: uppercase; color: var(--dourado-claro); display: block; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<!-- 1. Capa -->
+<section class="pagina escura capa">
+  <div class="arco" style="width:900px;height:900px;right:-420px;top:-300px"></div>
+  <div class="arco" style="width:640px;height:640px;right:-300px;bottom:-260px"></div>
+  <div class="marca">ORYA</div>
+  <div class="rotulo" style="color:var(--dourado-claro)">Estética Avançada</div>
+  <div class="fio"></div>
+  <h1>Como funciona a sua jornada <em>na ORYA</em></h1>
+  <div class="fio"></div>
+  <p>Do primeiro contato ao resultado: tudo pensado para você voltar a se reconhecer no espelho, com naturalidade e segurança.</p>
+  <div class="rodape"><span>Dra. Danielly Pinheiro</span><span>CRBM-1 62832</span></div>
+</section>
+
+<!-- 2. Dra. Danielly -->
+<section class="pagina areia">
+  <div class="rotulo">Quem cuida de você</div>
+  <h2>Dra. Danielly Pinheiro</h2>
+  <div class="credenciais">
+    <div class="credencial"><div><b>Biomédica esteta</b><p>CRBM-1 nº 62832. Sócia e responsável técnica da ORYA.</p></div></div>
+    <div class="credencial"><div><b>Especialização em Paris</b><p>Especialização em harmonização facial em Paris, na França.</p></div></div>
+    <div class="credencial"><div><b>Pós-graduação no Brasil</b><p>Pós-graduada em biomedicina estética.</p></div></div>
+    <div class="credencial"><div><b>Do início ao fim</b><p>É ela quem faz a sua avaliação, monta o seu plano e realiza o procedimento.</p></div></div>
+  </div>
+  <p class="citacao">Cada rosto tem a sua história. Nosso trabalho é realçar a sua beleza, nunca transformar você em outra pessoa.</p>
+  <div class="rodape"><span>ORYA Estética Avançada</span><span>02</span></div>
+</section>
+
+<!-- 3. Jornada -->
+<section class="pagina">
+  <div class="rotulo">Passo a passo</div>
+  <h2>A sua jornada em 5 etapas</h2>
+  <div class="passos">
+    <div class="passo"><div class="num">01</div><div><h3>Conversa inicial</h3><p>Pelo WhatsApp, entendemos o que te incomoda, o que você espera e o seu momento. Sem pressa e sem compromisso.</p></div></div>
+    <div class="passo"><div class="num">02</div><div><h3>Avaliação com a Dra. Danielly</h3><p>Consulta individual, com análise completa do seu rosto ou corpo. O valor da avaliação é 100% abatido no procedimento que você fechar.</p></div></div>
+    <div class="passo"><div class="num">03</div><div><h3>Plano personalizado</h3><p>Você recebe o plano feito para você, com caminhos possíveis, explicados com transparência, para decidir com calma.</p></div></div>
+    <div class="passo"><div class="num">04</div><div><h3>Procedimento</h3><p>Realizado pela própria Dra., com produtos registrados na ANVISA abertos na sua frente e técnica cuidadosa para o seu conforto.</p></div></div>
+    <div class="passo"><div class="num">05</div><div><h3>Acompanhamento</h3><p>Retorno em 15 dias nos injetáveis, cuidados por escrito e um calendário de manutenção para o resultado durar.</p></div></div>
+  </div>
+  <div class="rodape"><span>ORYA Estética Avançada</span><span>03</span></div>
+</section>
+
+<!-- 4. Metodologias -->
+<section class="pagina areia">
+  <div class="rotulo">Metodologias exclusivas</div>
+  <h2>Um método para cada objetivo</h2>
+  <div class="metodos">
+    <div class="metodo"><div class="area">Harmonização facial</div><h3>Método Essência ORYA</h3><p>Equilíbrio e proporção do rosto em etapas, começando pelo essencial, para um resultado natural e elegante.</p></div>
+    <div class="metodo"><div class="area">Toxina botulínica</div><h3>Protocolo Olhar Leve</h3><p>Suaviza linhas de expressão e o aspecto cansado, preservando a naturalidade dos seus movimentos.</p></div>
+    <div class="metodo"><div class="area">Preenchimento labial</div><h3>Lábios Assinatura</h3><p>Contorno, volume e hidratação na medida do seu rosto, respeitando o formato dos seus lábios.</p></div>
+    <div class="metodo"><div class="area">Bioestimuladores e skinbooster</div><h3>Protocolo Colágeno Vivo</h3><p>Estimula o seu próprio colágeno para mais firmeza e qualidade de pele, com resultado progressivo.</p></div>
+    <div class="metodo"><div class="area">Harmonização glútea e corporal</div><h3>Contorno ORYA</h3><p>Planejamento do contorno corporal com foco em proporção, firmeza e autoestima.</p></div>
+    <div class="metodo"><div class="area">Pele e bem-estar</div><h3>Pele Renovada &amp; Leveza</h3><p>Limpeza de pele, peelings, microagulhamento e drenagem para uma pele saudável e um corpo mais leve.</p></div>
+  </div>
+  <div class="rodape"><span>ORYA Estética Avançada</span><span>04</span></div>
+</section>
+
+<!-- 5. Plano anual -->
+<section class="pagina">
+  <div class="rotulo">Para quem quer constância</div>
+  <h2>Plano Olhar Leve Anual</h2>
+  <div class="plano">
+    <div class="selo">Botox anual</div>
+    <div class="destaque">4 aplicações em 12 meses</div>
+    <p style="margin-top:22px">O resultado sempre em dia, com acompanhamento contínuo da Dra. Danielly e economia de 30% em relação às aplicações avulsas.</p>
+    <ul>
+      <li>4 aplicações programadas ao longo do ano</li>
+      <li>Acompanhamento da Dra. Danielly em todas as sessões</li>
+      <li>Retorno de 15 dias após cada aplicação</li>
+      <li>30% de economia em relação às aplicações avulsas</li>
+      <li>Parcelamento em até 10x sem juros</li>
+    </ul>
+  </div>
+  <p style="margin-top:40px">Pergunte pelos valores e condições na nossa conversa.</p>
+  <div class="rodape"><span>ORYA Estética Avançada</span><span>05</span></div>
+</section>
+
+<!-- 6. Unidades -->
+<section class="pagina areia">
+  <div class="rotulo">Onde atendemos</div>
+  <h2>Escolha a unidade mais perto de você</h2>
+  <div class="unidades">
+    <div class="unidade" style="background:var(--branco)"><div><h3>Jardim São Paulo</h3><p>Rua Viri, 62. Pertinho de Santana e do Shopping Center Norte.</p></div><div class="tag">Zona Norte</div></div>
+    <div class="unidade" style="background:var(--branco)"><div><h3>Tatuapé</h3><p>Endereço completo enviado na confirmação do seu horário.</p></div><div class="tag">Zona Leste</div></div>
+    <div class="unidade" style="background:var(--branco)"><div><h3>Jardins</h3><p>Endereço completo enviado na confirmação do seu horário.</p></div><div class="tag">Jardins</div></div>
+  </div>
+  <p style="margin-top:50px">Avaliações de segunda a sábado, das 8h às 20h. Domingo sob consulta. Somos flexíveis para encaixar a sua rotina.</p>
+  <div class="rodape"><span>ORYA Estética Avançada</span><span>06</span></div>
+</section>
+
+<!-- 7. Compromissos -->
+<section class="pagina">
+  <div class="rotulo">Nosso compromisso</div>
+  <h2>O que você pode esperar da ORYA</h2>
+  <div class="compromissos">
+    <div class="compromisso"><h3>Naturalidade</h3><p>Realçar quem você é. Começamos pelo necessário e ajustamos no retorno, se precisar.</p></div>
+    <div class="compromisso"><h3>Segurança</h3><p>Produtos com registro na ANVISA, abertos na sua frente, e triagem de saúde antes de qualquer procedimento.</p></div>
+    <div class="compromisso"><h3>Transparência</h3><p>Plano explicado com clareza, valores conversados com você e nada de surpresa.</p></div>
+    <div class="compromisso"><h3>Acolhimento</h3><p>Do primeiro “oi” ao pós-procedimento, você é acompanhada de perto pela nossa equipe.</p></div>
+  </div>
+  <p class="aviso">Os resultados variam de pessoa para pessoa e dependem da avaliação individual.</p>
+  <div class="rodape"><span>ORYA Estética Avançada</span><span>07</span></div>
+</section>
+
+<!-- 8. Fechamento -->
+<section class="pagina escura fecho">
+  <div class="arco" style="width:800px;height:800px;left:-380px;top:-320px"></div>
+  <div class="rotulo" style="color:var(--dourado-claro)">Próximo passo</div>
+  <h2>Agende a sua avaliação com a Dra. Danielly</h2>
+  <p>Responda por aqui que a gente encontra o melhor dia, horário e unidade para você.</p>
+  <div class="contato">
+    <div><span>WhatsApp</span>(11) 2959-3266</div>
+    <div><span>Instagram</span>@dra.daniellypinheiro · @oryaestetica</div>
+  </div>
+  <div class="rodape"><span>ORYA Estética Avançada</span><span>CRBM-1 62832</span></div>
+</section>
+
+</body>
+</html>

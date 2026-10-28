@@ -74,7 +74,9 @@ function bolha(autor, texto, hora) {
   const d = document.createElement('div');
   d.className = 'msg ' + autor;
   const foto = /^\[foto:([a-z_]+)\]$/.exec(texto || '');
-  if (foto) {
+  if (texto === '[pdf:apresentacao]') {
+    d.innerHTML = '📄 <a href="/api/apresentacao" target="_blank">ORYA - Como funciona.pdf</a>';
+  } else if (foto) {
     const img = document.createElement('img');
     img.src = '/api/antes-depois/' + foto[1]; img.style.cssText = 'max-width:240px;border-radius:6px;display:block';
     img.onerror = () => { d.textContent = '[foto de antes e depois: ' + foto[1] + ']'; };

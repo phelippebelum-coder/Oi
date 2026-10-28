@@ -102,6 +102,8 @@ def iniciar():
             con.execute("ALTER TABLE agendamentos ADD COLUMN pagamento TEXT NOT NULL DEFAULT 'pendente'")
         if "forma_pagamento" not in colunas:
             con.execute("ALTER TABLE agendamentos ADD COLUMN forma_pagamento TEXT")
+        if "unidade" not in colunas:
+            con.execute("ALTER TABLE agendamentos ADD COLUMN unidade TEXT NOT NULL DEFAULT 'jardim_sao_paulo'")
 
 
 # ---------- contatos ----------
@@ -206,12 +208,13 @@ def obter_conversa(telefone: str, depois_de: int = 0) -> list[dict]:
 
 # ---------- agendamentos ----------
 
-def criar_agendamento(telefone, inicio_iso, profissional, procedimento, resumo, forma_pagamento=None) -> int:
+def criar_agendamento(telefone, inicio_iso, profissional, procedimento, resumo, forma_pagamento=None,
+                      unidade="jardim_sao_paulo") -> int:
     with conectar() as con:
         cur = con.execute(
-            "INSERT INTO agendamentos (telefone, inicio, profissional, procedimento, resumo, forma_pagamento, criado_em) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (telefone, inicio_iso, profissional, procedimento, resumo, forma_pagamento, agora_iso()),
+            "INSERT INTO agendamentos (telefone, inicio, profissional, procedimento, resumo, forma_pagamento, unidade, "
+            "criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (telefone, inicio_iso, profissional, procedimento, resumo, forma_pagamento, unidade, agora_iso()),
         )
         return cur.lastrowid
 

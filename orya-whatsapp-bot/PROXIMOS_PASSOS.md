@@ -2,7 +2,7 @@
 
 ## Pronto
 - Código completo nesta pasta (branch `orya-whatsapp-bot`): webhook da Meta, cérebro com o roteiro SDR da ORYA, ficha/categorização, agenda, passagem para a equipe, lembretes, follow-up, página de teste (`/teste`), painel (`/painel`) e teste automático de qualidade (`avaliar.py`).
-- 20 testes técnicos passando. O formato da chamada ao Claude foi conferido.
+- 23 testes técnicos passando. O formato da chamada ao Claude foi conferido.
 - Ainda NÃO testado com o Claude de verdade (faltava a chave da API).
 
 ## Próximo passo: testar na página de teste
@@ -29,17 +29,24 @@
 - Áudio de lead com potencial → pedido de ligação para o Phelippe.
 - Promoções do mês em `prompts/promocoes.md`.
 
+## Atualizado (28/10, parte 3)
+- Três unidades (Jardim São Paulo, Tatuapé, Jardins), agenda única da Dra.; Tatuapé e Jardins "sob consulta" até termos endereço e dias.
+- PDF de apresentação (`materiais/apresentacao_orya.pdf`) com jornada em 5 etapas e metodologias nomeadas; bot envia.
+- Plano Olhar Leve Anual: botox terço superior 4x/ano, R$ 3.080 (30% off) em 10x de R$ 308.
+- Pix: CNPJ 67.898.906/0001-46. Relatórios para Phelippe.belum@blmengenharia.com.br.
+
 ## Informações que faltam (Phelippe)
-- [ ] E-mail(s) que recebem os relatórios + um Gmail com senha de app para enviar
-- [ ] Regiões: Tatuapé e Jardins são outras unidades/endereços ou só regiões de onde vêm pacientes?
-- [ ] Metodologia: tem um nome ou passo a passo próprio da Dra. Danielly para o bot citar?
-- [ ] Chave Pix e link de cartão (fixo) para o bot enviar sozinho, ou a equipe envia?
+- [ ] Endereços das unidades Tatuapé e Jardins + dias/horários da Dra. em cada uma
+- [ ] Aprovar o PDF e os nomes das metodologias
+- [ ] Plano anual: vale também para face completa (R$ 3.920 com 30%)? Tem desconto extra no Pix?
+- [ ] Senha do e-mail Phelippe.belum@blmengenharia.com.br (vai só na variável SMTP_SENHA do Railway)
+- [ ] Link de cartão: fixo (bot envia) ou a equipe gera para cada cliente?
 - [ ] Avaliação sem pagamento: cancelar o horário depois de quantas horas?
 - [ ] Fotos de antes e depois (botox, harmonização facial, labial, glútea): subir pelo painel
 - [ ] Promoções do mês → `prompts/promocoes.md`
 - [ ] Link do grupo VIP → variável `GRUPO_VIP_LINK`
 - [ ] Blefaro plasma: confirmar R$ 1.000 (10x) / R$ 900 no Pix
-- [ ] Como o bot se apresenta → variável `ATENDENTE` (hoje: "o atendimento da ORYA")
+- [ ] Chave da API do Claude + conta no Railway (para o primeiro teste real)
 
 ## Depois de aprovar o comportamento
 - Ligar no WhatsApp: Meta Business verificado, app no Meta for Developers, número (11) 2959-3266 em coexistência, webhook com `messages` e `smb_message_echoes` (passo a passo no README).

@@ -41,6 +41,15 @@ def _instrucoes_pagamento() -> str:
     return "\n".join(linhas)
 
 
+def _descrever_unidades() -> str:
+    linhas = []
+    for chave, u in agenda.unidades().items():
+        endereco = u.get("endereco") or "endereço completo enviado pela equipe na confirmação"
+        sob_consulta = "" if agenda.agenda_aberta(chave) else " Horários nessa unidade: sob consulta."
+        linhas.append(f"  - {u['nome']} ({chave}): {endereco}, {u.get('referencia', '')}.{sob_consulta}")
+    return "\n".join(linhas)
+
+
 def prompt_sistema() -> str:
     pasta = config.BASE_DIR / "prompts"
     base = (pasta / "sdr_orya.md").read_text(encoding="utf-8")
@@ -50,6 +59,7 @@ def prompt_sistema() -> str:
         "{{PRECOS}}": (pasta / "precos.md").read_text(encoding="utf-8"),
         "{{PAGAMENTO}}": _instrucoes_pagamento(),
         "{{PROMOCOES}}": promocoes.read_text(encoding="utf-8") if promocoes.exists() else "(nenhuma no momento)",
+        "{{UNIDADES}}": _descrever_unidades(),
         "{{GRUPO_VIP}}": (f"link: {config.GRUPO_VIP_LINK}" if config.GRUPO_VIP_LINK
                           else "o link ainda não foi configurado, então só comente que existe e que a equipe envia"),
     }
@@ -80,7 +90,7 @@ def contexto_do_turno(contato: dict, nota: str | None = None) -> str:
     if ags:
         descr = "; ".join(
             f"id {a['id']}: {agenda.descrever(datetime.fromisoformat(a['inicio']).astimezone(config.TZ))} "
-            f"com {agenda.PROFISSIONAIS.get(a['profissional'], a['profissional'])} ({a['procedimento'] or '-'})"
+            f"na unidade {agenda.nome_unidade(a.get('unidade'))} ({a['procedimento'] or '-'})"
             for a in ags
         )
         partes.append(f"Avaliações agendadas: {descr}.")

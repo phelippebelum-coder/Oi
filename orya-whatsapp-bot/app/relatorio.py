@@ -32,8 +32,13 @@ def _enviar(assunto: str, texto: str, corpo_html: str | None = None):
     msg.set_content(texto)
     if corpo_html:
         msg.add_alternative(corpo_html, subtype="html")
-    with smtplib.SMTP(config.SMTP_HOST, config.SMTP_PORTA, timeout=30) as s:
-        s.starttls()
+    if config.SMTP_PORTA == 465:
+        conexao = smtplib.SMTP_SSL(config.SMTP_HOST, config.SMTP_PORTA, timeout=30)
+    else:
+        conexao = smtplib.SMTP(config.SMTP_HOST, config.SMTP_PORTA, timeout=30)
+    with conexao as s:
+        if config.SMTP_PORTA != 465:
+            s.starttls()
         s.login(config.SMTP_USUARIO, config.SMTP_SENHA)
         s.send_message(msg)
 

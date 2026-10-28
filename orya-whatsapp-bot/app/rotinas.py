@@ -106,7 +106,8 @@ async def lembretes():
         if (not ag["lembrete_d1"] and not recente and timedelta(hours=3) < falta <= timedelta(hours=24)
                 and 8 <= agora.hour < 21):
             texto = (f"Oi, {nome}! Passando pra lembrar da sua avaliação {agenda.descrever(inicio).split(' às')[0]} "
-                     f"às {hora} com a {prof}, aqui na Rua Viri, 62, Jardim São Paulo 🤍\n\n"
+                     f"às {hora} com a {prof}, na unidade {agenda.nome_unidade(ag.get('unidade'))}"
+                     f"{(', ' + agenda.endereco_unidade(ag.get('unidade')).split(', São Paulo')[0]) if agenda.endereco_unidade(ag.get('unidade')) else ''} 🤍\n\n"
                      "Posso confirmar sua presença?")
             await _enviar_lembrete(contato, ag, texto)
             db.atualizar_agendamento(ag["id"], lembrete_d1=1)

@@ -16,6 +16,7 @@ O bot só informa o que estiver aqui. O que tiver [PREENCHER] ou não estiver na
 ## Procedimentos com valor que pode ser informado
 - Toxina botulínica (botox) terço superior: R$ 1.100 em até 10x sem juros, ou R$ 990 no Pix/dinheiro. Inclui retorno em 15 dias.
 - Toxina botulínica (botox) face completa: R$ 1.400 em até 10x sem juros, ou R$ 1.260 no Pix/dinheiro. Inclui retorno em 15 dias.
+- Plano Olhar Leve Anual (botox terço superior, 4 aplicações em 12 meses, 30% mais barato que 4 avulsas de R$ 1.100 = R$ 4.400): R$ 3.080 em até 10x sem juros de R$ 308 (sai R$ 770 por aplicação). Inclui retorno de 15 dias após cada aplicação. Desconto adicional no Pix para o plano: [PREENCHER]. Plano anual para face completa: [PREENCHER].
 - Preenchimento labial (1 ml): R$ 1.100 em até 10x sem juros, ou R$ 990 no Pix/dinheiro.
 - Limpeza de pele: R$ 150 (ou R$ 135 no Pix/dinheiro).
 - Drenagem linfática: R$ 229 por sessão (ou R$ 206,10 no Pix/dinheiro).

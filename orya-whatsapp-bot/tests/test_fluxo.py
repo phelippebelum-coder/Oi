@@ -84,9 +84,10 @@ def test_conversa_com_ficha_e_baloes(monkeypatch):
 
 
 def test_agendamento_avisa_equipe(monkeypatch):
-    slot = agenda.horarios_livres("danielly")[0]
+    slot = agenda.horarios_livres()[0]
     falso = ClaudeFalso([
         ([ferramenta("agendar_avaliacao", {"inicio": slot.isoformat(), "forma_pagamento": "pix",
+                                           "unidade": "jardim_sao_paulo",
                                            "procedimento_interesse": "preenchimento labial",
                                            "resumo_para_equipe": "Ana, 32, Santana"})], "tool_use"),
         ([texto("Prontinho, Ana! Tá agendado.")], "end_turn"),
@@ -100,16 +101,16 @@ def test_agendamento_avisa_equipe(monkeypatch):
     aviso = next(a for a in db.listar_avisos() if a["tipo"] == "agendamento")
     assert "pagamento PENDENTE (Pix)" in aviso["texto"]
     # o mesmo horário não aparece mais como livre (1 avaliação por vez)
-    assert slot not in agenda.horarios_livres("danielly")
+    assert slot not in agenda.horarios_livres()
     resultado = falso.chamadas[1][-1]["content"][0]["content"]
     assert resultado.startswith("Agendado")
 
 
 def test_horario_ocupado_e_recusado(monkeypatch):
-    slot = agenda.horarios_livres("danielly")[0]
+    slot = agenda.horarios_livres()[0]
     db.garantir_contato("a")
     db.criar_agendamento("a", slot.isoformat(), "danielly", "x", "y")
-    assert agenda.validar_horario(slot, "danielly") == "horário já ocupado"
+    assert agenda.validar_horario(slot) == "horário já ocupado"
     assert 8 <= slot.hour < 20
 
 
@@ -402,3 +403,43 @@ def test_upload_exige_autorizacao_e_pagamento_no_painel():
         assert db.listar_agendamentos()[0]["pagamento"] == "pendente"
         cli.post(f"/api/agendamentos/{ag}", json={"pagamento": "pago"})
         assert db.listar_agendamentos()[0]["pagamento"] == "pago"
+
+
+def test_unidades_compartilham_a_agenda_da_dra(monkeypatch):
+    from app import ferramentas as f
+    base = config.carregar_agenda()
+    unidades = {k: dict(v) for k, v in base["unidades"].items()}
+    unidades["tatuape"]["expediente"] = unidades["jardim_sao_paulo"]["expediente"]
+    monkeypatch.setattr(config, "carregar_agenda", lambda: {**base, "unidades": unidades})
+    slot = agenda.horarios_livres("tatuape")[0]
+    db.garantir_contato("a")
+    db.criar_agendamento("a", slot.isoformat(), "danielly", "botox", "r", "pix", "jardim_sao_paulo")
+    # ocupada no Jardim São Paulo = ocupada no Tatuapé também
+    assert agenda.validar_horario(slot, "tatuape") == "horário já ocupado"
+    assert slot not in agenda.horarios_livres("tatuape")
+    # Jardins sem expediente: sob consulta
+    assert "sob consulta" in f._ver_horarios({"unidade": "jardins"})
+    assert "sob consulta" in agenda.validar_horario(slot, "jardins")
+
+
+def test_apresentacao_pdf_enviada_uma_vez(monkeypatch):
+    falso = ClaudeFalso([
+        ([ferramenta("enviar_apresentacao", {})], "tool_use"),
+        ([texto("Te mandei nossa apresentação, dá uma olhadinha 🤍")], "end_turn"),
+        ([ferramenta("enviar_apresentacao", {})], "tool_use"),
+        ([texto("Conseguiu ver?")], "end_turn"),
+    ])
+    monkeypatch.setattr(cerebro, "_chamar", falso)
+    tel = "teste-pdf"
+    db.garantir_contato(tel, "teste")
+    asyncio.run(processador.responder_e_enviar(tel, "teste", [{"type": "text", "text": "como funciona?"}]))
+    assert db.obter_conversa(tel)[-1]["texto"] == "[pdf:apresentacao]"
+    asyncio.run(processador.responder_e_enviar(tel, "teste", [{"type": "text", "text": "ok"}]))
+    assert "já foi enviada" in falso.chamadas[3][-1]["content"][0]["content"]
+    assert midia.apresentacao().name == "apresentacao_orya.pdf"
+
+
+def test_prompt_plano_anual_e_unidades():
+    p = cerebro.prompt_sistema()
+    for trecho in ("R$ 3.080", "Plano Olhar Leve Anual", "Método Essência ORYA", "Tatuapé", "enviar_apresentacao"):
+        assert trecho in p

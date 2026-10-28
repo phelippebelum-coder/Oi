@@ -232,6 +232,27 @@ async def subir_antes_depois(proc: str, foto: FotoUpload):
     return {"ok": True}
 
 
+@app.get("/api/apresentacao", dependencies=[Depends(autenticar)])
+async def ver_apresentacao():
+    f = midia.apresentacao()
+    if not f:
+        raise HTTPException(404)
+    return FileResponse(f, media_type="application/pdf", filename="ORYA - Como funciona.pdf")
+
+
+class PdfUpload(BaseModel):
+    pdf_base64: str
+
+
+@app.post("/api/apresentacao", dependencies=[Depends(autenticar)])
+async def subir_apresentacao(arq: PdfUpload):
+    try:
+        midia.salvar_apresentacao(base64.b64decode(arq.pdf_base64.split(",")[-1]))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"ok": True}
+
+
 @app.delete("/api/antes-depois/{proc}", dependencies=[Depends(autenticar)])
 async def apagar_antes_depois(proc: str):
     midia.remover(proc)

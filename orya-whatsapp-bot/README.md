@@ -17,6 +17,8 @@ O bot faz o pré-atendimento da ORYA 24 horas por dia no WhatsApp oficial (Cloud
 - **Antes e depois**: vocês sobem uma foto por procedimento (botox, harmonização facial, labial, harmonização glútea) na aba "Antes e depois" do painel; o bot envia como referência quando a cliente demonstra interesse, com a legenda de autorização.
 - **Pagamento antecipado da avaliação** (Pix ou link de cartão): o bot pergunta a preferência, envia a chave/link (se configurados) ou avisa a equipe para enviar. No painel, cada avaliação mostra "pagamento pendente" até vocês marcarem como pago.
 - **Promoções do mês**: escreva em `prompts/promocoes.md`; o bot usa nos follow-ups, no resgate e na conversa.
+- **Três unidades** (Jardim São Paulo, Tatuapé e Jardins): a cliente escolhe; a agenda da Dra. é única, então um horário ocupado numa unidade some das outras. Unidade sem expediente cadastrado fica "sob consulta" (o bot avisa a equipe).
+- **Apresentação em PDF** (`materiais/apresentacao_orya.pdf`): a Dra., a jornada em 5 etapas, as metodologias, o Plano Olhar Leve Anual e as unidades. O bot envia quando a cliente quer entender como funciona. Para mudar o texto, edite `materiais/apresentacao.html` e rode `node materiais/gerar_pdf.js`, ou suba outro PDF no painel.
 - **Entende fotos** e pede com naturalidade pra escrever quando recebe áudio.
 - **Reconhece clientes antigas** (importe a lista no painel) e já fala de manutenção.
 - **Compliance**: preço só no individual, sem promessa de resultado, sem escassez falsa, sem antes e depois, honesta se perguntarem se é robô (CFBM Res. 330/2020 e LGPD).
@@ -100,17 +102,27 @@ Sem template, o lembrete só sai se a cliente falou nas últimas 24h; os demais 
 ## Ajustes do dia a dia
 
 - **Preços**: edite `prompts/precos.md`. Onde estiver `[PREENCHER]`, o bot diz que vai confirmar e avisa a equipe.
-- **Horários e bloqueios** (feriados, férias, domingo): crie `prompts/agenda.json`, por exemplo:
+- **Unidades, horários e bloqueios**: crie `prompts/agenda.json` (substitui o padrão). Exemplo com a Dra. no Tatuapé às terças e nos Jardins às quintas à tarde:
   ```json
   {
     "duracao_min": 30,
+    "antecedencia_min_horas": 2,
+    "dias_a_frente": 14,
     "avaliacoes_simultaneas": 1,
-    "expediente": {"0": [["08:00","20:00"]], "1": [["08:00","20:00"]], "2": [["08:00","20:00"]],
-                   "3": [["08:00","20:00"]], "4": [["08:00","20:00"]], "5": [["08:00","20:00"]]},
-    "bloqueios": ["2026-11-02", "2026-11-15", "2026-11-20 14:00"]
+    "bloqueios": ["2026-11-02", "2026-11-15", "2026-11-20 14:00"],
+    "unidades": {
+      "jardim_sao_paulo": {"nome": "Jardim São Paulo", "endereco": "Rua Viri, 62, Jardim São Paulo, São Paulo/SP (CEP 02046-030)",
+                           "referencia": "pertinho de Santana e do Shopping Center Norte",
+                           "expediente": {"0": [["08:00","20:00"]], "2": [["08:00","20:00"]], "3": [["08:00","12:00"]],
+                                          "4": [["08:00","20:00"]], "5": [["08:00","20:00"]]}},
+      "tatuape": {"nome": "Tatuapé", "endereco": "ENDEREÇO", "referencia": "Zona Leste",
+                  "expediente": {"1": [["08:00","20:00"]]}},
+      "jardins": {"nome": "Jardins", "endereco": "ENDEREÇO", "referencia": "região dos Jardins",
+                  "expediente": {"3": [["13:00","20:00"]]}}
+    }
   }
   ```
-  (`"6"` é domingo; inclua se a clínica atender.)
+  (0 = segunda ... 5 = sábado, 6 = domingo. Domingo é sob consulta, então fica fora.)
   Importante: a agenda do bot é a fonte da verdade dos horários de avaliação. Se a recepção marcar avaliações por fora, bloqueie o horário aqui ou peça a integração com o Google Agenda (próxima etapa).
 - **Tom e regras**: edite `prompts/sdr_orya.md`.
 - **Assumir uma conversa**: responda pelo celular (o bot pausa sozinho por 12h) ou use "Pausar bot" no painel. "Devolver para o bot" reativa.

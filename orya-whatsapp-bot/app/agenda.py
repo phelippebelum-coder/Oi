@@ -1,4 +1,4 @@
-"""Agenda interna de avaliações: horários livres, reserva e cancelamento."""
+"""Agenda interna de avaliações (sempre com a Dra. Danielly, em três unidades)."""
 
 from datetime import date, datetime, time, timedelta
 
@@ -6,15 +6,33 @@ from . import config, db
 
 DIAS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"]
 PROFISSIONAIS = {"danielly": "Dra. Danielly"}
+UNIDADE_PADRAO = "jardim_sao_paulo"
 
 
 def _cfg():
     return config.carregar_agenda()
 
 
-def _expediente(cfg: dict, profissional: str) -> dict:
-    por_prof = cfg.get("profissionais", {}).get(profissional, {})
-    return por_prof.get("expediente", cfg["expediente"])
+def unidades() -> dict[str, dict]:
+    return _cfg()["unidades"]
+
+
+def nome_unidade(chave: str | None) -> str:
+    return unidades().get(chave or UNIDADE_PADRAO, {}).get("nome", chave or "")
+
+
+def endereco_unidade(chave: str | None) -> str:
+    u = unidades().get(chave or UNIDADE_PADRAO, {})
+    return u.get("endereco") or ""
+
+
+def _expediente(cfg: dict, unidade: str) -> dict:
+    return cfg["unidades"].get(unidade, {}).get("expediente") or {}
+
+
+def agenda_aberta(unidade: str) -> bool:
+    """Unidade sem expediente cadastrado = horários sob consulta (a equipe confirma)."""
+    return any(_expediente(_cfg(), unidade).values())
 
 
 def _bloqueado(cfg: dict, inicio: datetime) -> bool:
@@ -26,26 +44,26 @@ def _bloqueado(cfg: dict, inicio: datetime) -> bool:
     return False
 
 
-def _ocupacao(profissional: str) -> dict[str, int]:
+def _ocupacao() -> dict[str, int]:
+    """A Dra. é uma só: um horário ocupado em qualquer unidade fica ocupado em todas."""
     ocup: dict[str, int] = {}
     for ag in db.agendamentos_ativos():
-        if ag["profissional"] == profissional:
-            ocup[ag["inicio"]] = ocup.get(ag["inicio"], 0) + 1
+        ocup[ag["inicio"]] = ocup.get(ag["inicio"], 0) + 1
     return ocup
 
 
-def horarios_livres(profissional: str = "danielly", a_partir: date | None = None,
+def horarios_livres(unidade: str = UNIDADE_PADRAO, a_partir: date | None = None,
                     periodo: str | None = None, limite: int = 8) -> list[datetime]:
     cfg = _cfg()
     agora = datetime.now(config.TZ)
     minimo = agora + timedelta(hours=cfg["antecedencia_min_horas"])
     inicio_busca = max(a_partir or agora.date(), agora.date())
-    ocup = _ocupacao(profissional)
+    ocup = _ocupacao()
     dur = timedelta(minutes=cfg["duracao_min"])
     livres = []
     for d in range(cfg["dias_a_frente"]):
         dia = inicio_busca + timedelta(days=d)
-        for ini_s, fim_s in _expediente(cfg, profissional).get(str(dia.weekday()), []):
+        for ini_s, fim_s in _expediente(cfg, unidade).get(str(dia.weekday()), []):
             slot = datetime.combine(dia, time.fromisoformat(ini_s), tzinfo=config.TZ)
             fim = datetime.combine(dia, time.fromisoformat(fim_s), tzinfo=config.TZ)
             while slot + dur <= fim:
@@ -96,9 +114,13 @@ def descrever(slot: datetime) -> str:
     return f"{rotulo} ({slot.strftime('%d/%m')}) às {hora}"
 
 
-def validar_horario(inicio: datetime, profissional: str) -> str | None:
+def validar_horario(inicio: datetime, unidade: str = UNIDADE_PADRAO) -> str | None:
     """Retorna None se o horário estiver livre, senão o motivo."""
     cfg = _cfg()
+    if unidade not in cfg["unidades"]:
+        return "unidade desconhecida"
+    if not agenda_aberta(unidade):
+        return "a agenda dessa unidade é sob consulta (a equipe confirma o horário)"
     agora = datetime.now(config.TZ)
     if inicio < agora + timedelta(hours=cfg["antecedencia_min_horas"]):
         return "horário muito próximo ou no passado"
@@ -106,13 +128,13 @@ def validar_horario(inicio: datetime, profissional: str) -> str | None:
         return "dia/horário bloqueado na agenda"
     dur = timedelta(minutes=cfg["duracao_min"])
     dentro = False
-    for ini_s, fim_s in _expediente(cfg, profissional).get(str(inicio.weekday()), []):
+    for ini_s, fim_s in _expediente(cfg, unidade).get(str(inicio.weekday()), []):
         ini = datetime.combine(inicio.date(), time.fromisoformat(ini_s), tzinfo=config.TZ)
         fim = datetime.combine(inicio.date(), time.fromisoformat(fim_s), tzinfo=config.TZ)
         if ini <= inicio and inicio + dur <= fim and (inicio - ini) % dur == timedelta(0):
             dentro = True
     if not dentro:
-        return "fora do horário de atendimento"
-    if _ocupacao(profissional).get(inicio.isoformat(), 0) >= cfg["avaliacoes_simultaneas"]:
+        return "fora do horário de atendimento dessa unidade"
+    if _ocupacao().get(inicio.isoformat(), 0) >= cfg["avaliacoes_simultaneas"]:
         return "horário já ocupado"
     return None

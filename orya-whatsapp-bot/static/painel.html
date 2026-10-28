@@ -71,6 +71,9 @@
   <section id="aba-fotos" class="cartao" hidden>
     <p>Uma foto por procedimento (JPG ou PNG, até 5 MB, de preferência já com o antes e o depois lado a lado). O bot envia como referência quando a cliente demonstra interesse. Use somente fotos de pacientes que assinaram o termo de autorização de imagem.</p>
     <div id="fotos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px"></div>
+    <hr style="margin:20px 0"><p><b>Apresentação em PDF</b> (o bot envia quando a cliente quer entender como funciona). <a href="/api/apresentacao" target="_blank">Ver PDF atual</a></p>
+    <p><input type="file" accept="application/pdf" id="arqPdf"></p>
+    <p><button class="acao" id="btnPdf">Trocar PDF</button> <span id="pdfRes"></span></p>
   </section>
   <section id="aba-importar" class="cartao" hidden>
     <p>Cole uma lista de clientes que já são da ORYA (CSV com cabeçalho). Quando elas mandarem mensagem, o bot reconhece como cliente de retorno e já fala de manutenção.</p>
@@ -141,6 +144,7 @@ async function abrir(tel) {
   const conv = $('#detalhe .conv'); conv.scrollTop = conv.scrollHeight;
 }
 function fotoOuTexto(t) {
+  if (t === '[pdf:apresentacao]') return '📄 <a href="/api/apresentacao" target="_blank">Apresentação ORYA (PDF)</a>';
   const m = /^\[foto:([a-z_]+)\]$/.exec(t || '');
   return m ? `<img src="/api/antes-depois/${m[1]}" style="max-width:220px;border-radius:6px"><br><small>antes e depois: ${m[1]}</small>` : esc(t);
 }
@@ -155,7 +159,7 @@ async function renderAgenda() {
   const porTel = Object.fromEntries(contatos.map(c => [c.telefone, c]));
   $('#ags').innerHTML = ags.filter(a => $('#fTeste').checked || !a.telefone.startsWith('teste-')).map(a => `<tr>
     <td><b>${dt(a.inicio)}</b></td><td>${esc(porTel[a.telefone] ? nome(porTel[a.telefone]) : a.telefone)}<br><small>${esc(a.telefone)}</small></td>
-    <td>${esc(a.procedimento)}<br><small>pagamento: ${esc(a.forma_pagamento || '-')}</small></td>
+    <td>${esc(a.procedimento)}<br><small>unidade: ${esc(a.unidade || 'jardim_sao_paulo')} · pagamento: ${esc(a.forma_pagamento || '-')}</small></td>
     <td><span class="etq">${esc(a.status)}</span><span class="etq ${a.pagamento === 'pago' ? 'cliente' : 'quente'}">${a.pagamento === 'pago' ? 'pago' : 'pagamento pendente'}</span></td>
     <td>${a.pagamento !== 'pago' ? `<button class="acao" onclick="pagoAg(${a.id})">marcar pago</button>` : ''}${['compareceu', 'faltou', 'cancelado'].map(s => `<button class="acao sec" onclick="statusAg(${a.id},'${s}')">${s}</button>`).join('')}</td></tr>`).join('')
     || '<tr><td colspan="5" class="vazio">Nenhuma avaliação.</td></tr>';
@@ -189,6 +193,12 @@ async function subirFoto(proc) {
     body: JSON.stringify({ imagem_base64: b64, tipo: arq.type, autorizacao_paciente: true }) });
   if (!r.ok) alert((await r.json()).detail || 'Erro ao salvar'); renderFotos();
 }
+$('#btnPdf').onclick = async () => {
+  const arq = $('#arqPdf').files[0]; if (!arq) return alert('Escolha um PDF.');
+  const b64 = await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(arq); });
+  const r = await fetch('/api/apresentacao', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ pdf_base64: b64 }) });
+  $('#pdfRes').textContent = r.ok ? 'PDF atualizado.' : 'Erro: envie um PDF de até 15 MB.';
+};
 async function apagarFoto(proc) { if (confirm('Remover esta foto?')) { await fetch('/api/antes-depois/' + proc, { method: 'DELETE' }); renderFotos(); } }
 
 async function renderAvisos() {
