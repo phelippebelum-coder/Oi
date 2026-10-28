@@ -42,6 +42,11 @@
 - E-mail sai pelo Gmail da ORYA (senha de app); relatórios para ORYA + BLM.
 - Grupo VIP configurado. Face completa anual e blefaro: sem valor por mensagem. Link de cartão: equipe envia.
 
+## Atualizado (28/10, parte 5)
+- Apresentação refeita no estilo da institucional da BLM (16:9, 10 slides, mais impactante).
+- Dra. Danielly: especialização em anatomia aplicada à harmonização facial (Paris).
+- Agenda da Dra.: 8h às 18h, seg a sáb; após 18h e domingo, sob consulta.
+
 ## Informações que faltam (Phelippe)
 - [ ] TROCAR a senha da conta Google da ORYA (foi enviada no chat)
 - [ ] Criar a conta de serviço do Google Agenda e a senha de app do Gmail (passo a passo no README, Passo 4)

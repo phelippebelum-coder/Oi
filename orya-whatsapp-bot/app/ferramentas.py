@@ -438,7 +438,7 @@ async def _ligacao(contato: dict, entrada: dict) -> str:
         f"Motivo: {entrada.get('motivo')}\n\n{entrada.get('resumo', '')}",
     )
     return ("Pedido de ligação enviado para a equipe. Avise a cliente com carinho que vão ligar "
-            "(no horário que ela preferir, entre 8h e 20h) e continue a conversa normalmente.")
+            "(no horário que ela preferir, entre 8h e 18h) e continue a conversa normalmente.")
 
 
 async def _transferir(contato: dict, entrada: dict) -> str:
@@ -453,5 +453,5 @@ async def _transferir(contato: dict, entrada: dict) -> str:
     )
     return (
         "Transferido e bot pausado. Escreva só uma mensagem curta e acolhedora avisando que alguém da equipe "
-        "continua com ela por aqui (fora das 8h às 20h, diga que retornam a partir das 8h). Não continue a venda."
+        "continua com ela por aqui (fora das 8h às 18h, diga que retornam a partir das 8h). Não continue a venda."
     )

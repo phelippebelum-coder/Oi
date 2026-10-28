@@ -31,7 +31,7 @@ O bot faz o pré-atendimento da ORYA 24 horas por dia no WhatsApp oficial (Cloud
 prompts/sdr_orya.md   ← comportamento do bot (edite aqui o tom e as regras)
 prompts/precos.md     ← tabela de preços e regras de pagamento
 prompts/promocoes.md  ← promoções e novidades do mês (editar todo mês)
-prompts/agenda.json   ← (opcional) horários de atendimento; sem ele vale seg-sáb 8h-20h, sempre com a Dra. Danielly
+prompts/agenda.json   ← (opcional) horários de atendimento; sem ele vale seg-sáb 8h-18h (após 18h e domingo: sob consulta), sempre com a Dra. Danielly
 app/                  ← servidor (webhook, cérebro, ferramentas, agenda, rotinas)
 static/               ← página de teste e painel
 avaliar.py            ← teste automático de qualidade com clientes simuladas
@@ -128,12 +128,12 @@ Nunca coloque a senha da conta Google no bot: ele não precisa dela.
     "unidades": {
       "jardim_sao_paulo": {"nome": "Jardim São Paulo", "endereco": "Rua Viri, 62, Jardim São Paulo, São Paulo/SP (CEP 02046-030)",
                            "referencia": "pertinho de Santana e do Shopping Center Norte",
-                           "expediente": {"0": [["08:00","20:00"]], "2": [["08:00","20:00"]], "3": [["08:00","12:00"]],
-                                          "4": [["08:00","20:00"]], "5": [["08:00","20:00"]]}},
+                           "expediente": {"0": [["08:00","18:00"]], "2": [["08:00","18:00"]], "3": [["08:00","12:00"]],
+                                          "4": [["08:00","18:00"]], "5": [["08:00","18:00"]]}},
       "tatuape": {"nome": "Tatuapé", "endereco": "ENDEREÇO", "referencia": "Zona Leste",
-                  "expediente": {"1": [["08:00","20:00"]]}},
+                  "expediente": {"1": [["08:00","18:00"]]}},
       "jardins": {"nome": "Jardins", "endereco": "ENDEREÇO", "referencia": "região dos Jardins",
-                  "expediente": {"3": [["13:00","20:00"]]}}
+                  "expediente": {"3": [["13:00","18:00"]]}}
     }
   }
   ```

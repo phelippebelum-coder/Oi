@@ -73,7 +73,7 @@ def contexto_do_turno(contato: dict, nota: str | None = None) -> str:
     """Estado volátil (hora, ficha, agenda) vai numa mensagem de sistema no fim, para não quebrar o cache."""
     agora = datetime.now(config.TZ)
     dia = agenda.DIAS[agora.weekday()]
-    aberta = 8 <= agora.hour < 20 and agora.weekday() < 6
+    aberta = 8 <= agora.hour < 18 and agora.weekday() < 6
     partes = [
         f"Agora: {dia}, {agora.strftime('%d/%m/%Y %H:%M')} (horário de São Paulo). "
         f"Clínica {'aberta' if aberta else 'fechada neste momento'}.",

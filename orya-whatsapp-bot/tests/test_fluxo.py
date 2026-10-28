@@ -112,7 +112,7 @@ def test_horario_ocupado_e_recusado(monkeypatch):
     db.garantir_contato("a")
     db.criar_agendamento("a", slot.isoformat(), "danielly", "x", "y")
     assert agenda.validar_horario(slot) == "horário já ocupado"
-    assert 8 <= slot.hour < 20
+    assert 8 <= slot.hour < 18
 
 
 def test_eco_da_equipe_pausa_o_bot(monkeypatch):

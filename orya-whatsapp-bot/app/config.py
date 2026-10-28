@@ -96,7 +96,7 @@ DB_PATH = DATA_DIR / "orya.db"
 
 # Agenda da avaliação (sempre com a Dra. Danielly). Cada unidade tem o seu expediente;
 # unidade sem expediente = horários sob consulta (o bot avisa a equipe para confirmar).
-_SEG_A_SAB = {str(d): [["08:00", "20:00"]] for d in range(6)}  # 0 = segunda ... 6 = domingo
+_SEG_A_SAB = {str(d): [["08:00", "18:00"]] for d in range(6)}  # 0 = segunda ... 6 = domingo; após 18h: sob consulta
 AGENDA_PADRAO = {
     "duracao_min": 30,
     "antecedencia_min_horas": 4,  # dá tempo de pagar até 3 h antes
