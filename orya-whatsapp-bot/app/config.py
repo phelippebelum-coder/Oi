@@ -38,7 +38,7 @@ TEMPLATE_IDIOMA = _env("TEMPLATE_IDIOMA", "pt_BR")
 
 # Equipe
 EQUIPE_WHATSAPP = _lista("EQUIPE_WHATSAPP")  # ex.: 5511999999999,5511988888888
-ATENDENTE = _env("ATENDENTE", "o atendimento da ORYA")
+ATENDENTE = _env("ATENDENTE", "Aurora, do atendimento da ORYA")
 
 # Pagamento da avaliação (opcionais: sem eles, a equipe envia o Pix/link quando o bot avisar)
 PIX_CHAVE = _env("PIX_CHAVE")
@@ -46,10 +46,10 @@ PIX_FAVORECIDO = _env("PIX_FAVORECIDO", "ORYA Estética Avançada")
 LINK_CARTAO = _env("LINK_CARTAO")
 
 # Prazo do pagamento antecipado: até 24 h antes; marcando em cima da hora, até 3 h antes.
-# Sem pagamento no prazo, o horário é cancelado automaticamente (0 desliga o cancelamento).
+# Sem pagamento no prazo: com CANCELAR_SEM_PAGAMENTO=1 cancela sozinho; com 0 (padrão) só avisa a equipe.
 PAGAMENTO_PRAZO_HORAS = float(_env("PAGAMENTO_PRAZO_HORAS", "24"))
 PAGAMENTO_PRAZO_CURTO_HORAS = float(_env("PAGAMENTO_PRAZO_CURTO_HORAS", "3"))
-CANCELAR_SEM_PAGAMENTO = _env("CANCELAR_SEM_PAGAMENTO", "1") == "1"
+CANCELAR_SEM_PAGAMENTO = _env("CANCELAR_SEM_PAGAMENTO", "0") == "1"
 TEMPLATE_PAGAMENTO = _env("TEMPLATE_PAGAMENTO")  # {{1}} nome, {{2}} prazo (dd/mm às hh:mm)
 
 # Google Agenda (conta de serviço com acesso de edição à agenda da ORYA)

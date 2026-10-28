@@ -2,7 +2,7 @@
 
 ## Pronto
 - Código completo nesta pasta (branch `orya-whatsapp-bot`): webhook da Meta, cérebro com o roteiro SDR da ORYA, ficha/categorização, agenda, passagem para a equipe, lembretes, follow-up, página de teste (`/teste`), painel (`/painel`) e teste automático de qualidade (`avaliar.py`).
-- 27 testes técnicos passando. O formato da chamada ao Claude foi conferido.
+- 29 testes técnicos passando. O formato da chamada ao Claude foi conferido.
 - Ainda NÃO testado com o Claude de verdade (faltava a chave da API).
 
 ## Próximo passo: testar na página de teste
@@ -47,12 +47,20 @@
 - Dra. Danielly: especialização em anatomia aplicada à harmonização facial (Paris).
 - Agenda da Dra.: 8h às 18h, seg a sáb; após 18h e domingo, sob consulta.
 
+## Atualizado (28/10, parte 6)
+- Apresentação com logo oficial e marrom mais claro; versão PowerPoint editável (`materiais/apresentacao_orya.pptx`).
+- Bot se chama Aurora. Avisos no WhatsApp para Phelippe (+55 11 97612-2138) e Dra. (+55 11 99358-0088). Relatórios para os dois e-mails.
+- Pagamento vencido: só avisa a equipe (não cancela sozinho). Plano anual: R$ 3.080 em qualquer forma.
+- Planilha para preencher os preços: `materiais/tabela_precos_orya.xlsx`.
+
 ## Informações que faltam (Phelippe)
 - [ ] TROCAR a senha da conta Google da ORYA (foi enviada no chat)
-- [ ] Criar a conta de serviço do Google Agenda e a senha de app do Gmail (passo a passo no README, Passo 4)
 - [ ] Chave da API do Claude + conta no Railway (primeiro teste real)
-- [ ] Fotos de antes e depois (painel) e promoções do mês (`prompts/promocoes.md`)
-- [ ] Dias em que a Dra. costuma estar no Tatuapé e nos Jardins (opcional; hoje é sob consulta)
+- [ ] Conta de serviço do Google Agenda + senha de app do Gmail (README, Passo 4)
+- [ ] Preencher `materiais/tabela_precos_orya.xlsx` e devolver
+- [ ] ID do conjunto de dados (Pixel) da ORYA no Gerenciador de Eventos do Meta (conversão "agendou")
+- [ ] Fotos de antes e depois, fotos da Dra./clínica, promoções do mês, lista de clientes antigas (opcionais)
+- [ ] Confirmar: sábado 8h-18h e avaliação de 30 min (padrões atuais)
 
 ## Depois de aprovar o comportamento
 - Ligar no WhatsApp: Meta Business verificado, app no Meta for Developers, número (11) 2959-3266 em coexistência, webhook com `messages` e `smb_message_echoes` (passo a passo no README).

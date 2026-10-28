@@ -319,8 +319,8 @@ async def _agendar(contato: dict, entrada: dict) -> str:
     return (
         f"Agendado (id {ag_id}): {quando} ({inicio.strftime('%d/%m/%Y %H:%M')}) com {agenda.PROFISSIONAIS[prof]}, "
         f"unidade {agenda.nome_unidade(unidade)}. "
-        f"Prazo do pagamento antecipado: até {_quando_prazo(prazo)} (sem pagamento até lá, o horário é cancelado "
-        "automaticamente). Agora siga com o pagamento (Pix ou link de cartão), depois o cadastro "
+        f"Prazo do pagamento antecipado: até {_quando_prazo(prazo)} (sem pagamento até lá, o horário pode ser "
+        "liberado). Agora siga com o pagamento (Pix ou link de cartão), depois o cadastro "
         "(nome, sobrenome e e-mail) se ainda faltar, e confirme com ela: data, hora, endereço "
         f"({agenda.endereco_unidade(unidade) or 'o endereço completo dessa unidade a equipe envia na confirmação'}), "
         "nome da Dra. e orientações "

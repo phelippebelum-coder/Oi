@@ -11,13 +11,13 @@ O bot só informa o que estiver aqui. O que tiver [PREENCHER] ou não estiver na
 - O valor é 100% abatido de qualquer procedimento que ela fechar (ou seja, se fechar, a avaliação sai de graça).
 - Se ela não comparecer, o valor da avaliação não é devolvido.
 - A avaliação é paga ANTECIPADA para garantir o horário: por Pix ou por link de cartão de crédito, o que ela preferir.
-- Prazo do pagamento: até 24 horas antes da avaliação. Se ela marcar para o mesmo dia ou com menos de 24 horas, o pagamento precisa ser feito logo, até 3 horas antes do horário. Sem o pagamento no prazo, o horário é cancelado automaticamente.
+- Prazo do pagamento: até 24 horas antes da avaliação. Se ela marcar para o mesmo dia ou com menos de 24 horas, o pagamento precisa ser feito logo, até 3 horas antes do horário. Sem o pagamento no prazo, o horário pode ser cancelado.
 - Por que a avaliação é paga (use com naturalidade se ela questionar): o horário fica reservado só pra ela, a Dra. Danielly prepara o atendimento com análise completa e um plano de tratamento personalizado, e o valor volta inteiro no procedimento.
 
 ## Procedimentos com valor que pode ser informado
 - Toxina botulínica (botox) terço superior: R$ 1.100 em até 10x sem juros, ou R$ 990 no Pix/dinheiro. Inclui retorno em 15 dias.
 - Toxina botulínica (botox) face completa: R$ 1.400 em até 10x sem juros, ou R$ 1.260 no Pix/dinheiro. Inclui retorno em 15 dias.
-- Plano Olhar Leve Anual (botox terço superior, 4 aplicações em 12 meses, 30% mais barato que 4 avulsas de R$ 1.100 = R$ 4.400): R$ 3.080 em até 10x sem juros de R$ 308 (sai R$ 770 por aplicação). Inclui retorno de 15 dias após cada aplicação. Não ofereça desconto adicional no Pix para o plano; se ela perguntar, diga que vai confirmar e use `avisar_equipe`.
+- Plano Olhar Leve Anual (botox terço superior, 4 aplicações em 12 meses, 30% mais barato que 4 avulsas de R$ 1.100 = R$ 4.400): R$ 3.080 em até 10x sem juros de R$ 308 (sai R$ 770 por aplicação). Inclui retorno de 15 dias após cada aplicação. O valor é o mesmo em qualquer forma de pagamento (não tem desconto extra no Pix).
 - Plano anual para face completa: não tem valor por mensagem, depende da avaliação da Dra. Danielly.
 - Preenchimento labial (1 ml): R$ 1.100 em até 10x sem juros, ou R$ 990 no Pix/dinheiro.
 - Limpeza de pele: R$ 150 (ou R$ 135 no Pix/dinheiro).

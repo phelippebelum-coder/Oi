@@ -461,6 +461,7 @@ def test_prazo_de_pagamento():
 
 
 def test_lembrete_e_cancelamento_automatico_sem_pagamento(monkeypatch):
+    monkeypatch.setattr(config, "CANCELAR_SEM_PAGAMENTO", True)
     tel = "teste-pag"
     db.garantir_contato(tel, "teste")
     db.atualizar_contato(tel, status="agendado", ficha={"nome": "Lu"}, ultima_msg_cliente_em=db.agora_iso())
@@ -523,3 +524,21 @@ def test_google_agenda_bloqueia_e_recebe_evento(monkeypatch):
     assert criados == [("Avaliação · Rita Alves · botox", livre, "Rua Viri, 62, Jardim São Paulo, São Paulo/SP (CEP 02046-030)", True)]
     ag = db.agendamentos_ativos(tel)[0]
     assert ag["google_evento_id"] == "EVT1" and ag["prazo_pagamento"]
+
+
+def test_prazo_vencido_so_avisa_por_padrao():
+    assert config.CANCELAR_SEM_PAGAMENTO is False
+    tel = "teste-avisa"
+    db.garantir_contato(tel, "teste")
+    ag = db.criar_agendamento(tel, (db.agora() + timedelta(hours=5)).isoformat(), "danielly", "botox", "r", "pix")
+    db.atualizar_agendamento(ag, prazo_pagamento=(db.agora() - timedelta(minutes=1)).isoformat(), lembrete_pagamento=1)
+    asyncio.run(rotinas.pagamentos())
+    asyncio.run(rotinas.pagamentos())
+    assert len(db.agendamentos_ativos(tel)) == 1
+    avisos = [a for a in db.listar_avisos() if "Prazo do pagamento venceu" in a["texto"]]
+    assert len(avisos) == 1
+
+
+def test_aurora_no_prompt():
+    p = cerebro.prompt_sistema()
+    assert "Aurora, do atendimento da ORYA" in p and "sou a Aurora" in p

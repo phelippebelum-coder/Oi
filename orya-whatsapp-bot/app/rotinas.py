@@ -125,6 +125,12 @@ async def pagamentos():
 
         if agora >= prazo:
             if not config.CANCELAR_SEM_PAGAMENTO:
+                if (ag.get("lembrete_pagamento") or 0) < 2:
+                    db.atualizar_agendamento(ag["id"], lembrete_pagamento=2)
+                    await equipe.notificar(
+                        ag["telefone"], "pagamento",
+                        f"⏰ Prazo do pagamento venceu: {rotulo}. O horário continua reservado. Se recebeu, marque "
+                        "como pago no painel; se não, cancele a avaliação no painel (aba Avaliações).")
                 continue
             db.atualizar_agendamento(ag["id"], status="cancelado")
             db.atualizar_contato(ag["telefone"], status="qualificado")
@@ -154,7 +160,8 @@ async def pagamentos():
             await equipe.notificar(
                 ag["telefone"], "pagamento",
                 f"💳 Pagamento pendente: {rotulo}. Prazo {quando_prazo}. Se já recebeu, marque como pago no painel, "
-                "senão o horário será cancelado automaticamente." + ("" if enviado else
+                + ("senão o horário será cancelado automaticamente." if config.CANCELAR_SEM_PAGAMENTO
+                 else "senão você decide se cancela quando o prazo vencer.") + ("" if enviado else
                                                                        "\n(Lembrete à cliente não enviado: fora da janela de 24h e sem TEMPLATE_PAGAMENTO.)"),
             )
 
