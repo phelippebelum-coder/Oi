@@ -63,6 +63,10 @@ CREATE TABLE IF NOT EXISTS avisos (
     lido INTEGER NOT NULL DEFAULT 0,
     criado_em TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS meta (
+    chave TEXT PRIMARY KEY,
+    valor TEXT
+);
 CREATE TABLE IF NOT EXISTS processados (
     wamid TEXT PRIMARY KEY,
     criado_em TEXT NOT NULL
@@ -277,3 +281,15 @@ def resolver_telefone_br(telefone: str) -> str:
             for tabela in ("contatos", "historico", "conversa", "agendamentos", "avisos"):
                 con.execute(f"UPDATE {tabela} SET telefone = ? WHERE telefone = ?", (telefone, alternativo))
     return telefone
+
+
+def obter_meta(chave: str) -> str | None:
+    with conectar() as con:
+        linha = con.execute("SELECT valor FROM meta WHERE chave = ?", (chave,)).fetchone()
+    return linha["valor"] if linha else None
+
+
+def definir_meta(chave: str, valor: str):
+    with conectar() as con:
+        con.execute("INSERT INTO meta (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor",
+                    (chave, valor))

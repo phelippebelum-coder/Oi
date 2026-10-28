@@ -5,7 +5,7 @@ from datetime import date, datetime, time, timedelta
 from . import config, db
 
 DIAS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"]
-PROFISSIONAIS = {"danielly": "Dra. Danielly", "suelen": "Dra. Suelen"}
+PROFISSIONAIS = {"danielly": "Dra. Danielly"}
 
 
 def _cfg():

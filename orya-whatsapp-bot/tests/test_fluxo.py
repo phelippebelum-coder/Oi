@@ -9,7 +9,9 @@ from types import SimpleNamespace
 import pytest
 from anthropic.types.beta import BetaTextBlock, BetaToolUseBlock
 
-from app import agenda, cerebro, config, db, processador, whatsapp
+from datetime import timedelta
+
+from app import agenda, cerebro, config, db, processador, relatorio, rotinas, whatsapp
 
 
 @pytest.fixture(autouse=True)
@@ -107,7 +109,7 @@ def test_horario_ocupado_e_recusado(monkeypatch):
     db.garantir_contato("a")
     db.criar_agendamento("a", slot.isoformat(), "danielly", "x", "y")
     assert agenda.validar_horario(slot, "danielly") == "horário já ocupado"
-    assert agenda.validar_horario(slot, "suelen") is None
+    assert 8 <= slot.hour < 20
 
 
 def test_eco_da_equipe_pausa_o_bot(monkeypatch):
@@ -211,3 +213,122 @@ def test_dividir_baloes():
 def test_prompt_sem_marcadores():
     p = cerebro.prompt_sistema()
     assert "{{" not in p and "Tabela de preços" in p
+
+
+def test_cadencia_de_followup_e_resgate(monkeypatch):
+    falso = ClaudeFalso([([texto("Oi!")], "end_turn")] + [([texto(f"follow {i}")], "end_turn") for i in range(7)]
+                        + [([texto("Que bom te ver de novo!")], "end_turn")])
+    monkeypatch.setattr(cerebro, "_chamar", falso)
+    monkeypatch.setattr(config, "FOLLOWUP_HORARIO", (0, 24))
+    tel = "teste-cad"
+
+    async def rodar():
+        await processador.receber_mensagem({"de": tel, "texto": "oi", "msg_tipo": "text"}, "teste")
+        await esperar()
+        enviados = []
+        for _ in range(7):
+            c = db.obter_contato(tel)
+            chave, limiar = rotinas.etapa_followup(c["followups_enviados"])
+            # um minuto antes do prazo: não envia
+            db.atualizar_contato(tel, ultima_msg_cliente_em=(db.agora() - limiar + timedelta(minutes=1)).isoformat())
+            await rotinas.followups()
+            assert db.obter_contato(tel)["followups_enviados"] == c["followups_enviados"]
+            db.atualizar_contato(tel, ultima_msg_cliente_em=(db.agora() - limiar - timedelta(minutes=1)).isoformat())
+            await rotinas.followups()
+            enviados.append(chave)
+        assert enviados == ["1", "3", "7", "15", "30", "mensal", "mensal"]
+        assert db.obter_contato(tel)["temperatura"] == "fria"
+        # ela responde: cadência zera e o bot recebe a nota de resgate
+        await processador.receber_mensagem({"de": tel, "texto": "oi, ainda tenho interesse", "msg_tipo": "text"},
+                                           "teste")
+        await esperar()
+
+    asyncio.run(rodar())
+    c = db.obter_contato(tel)
+    assert c["followups_enviados"] == 0 and c["temperatura"] == "morna"
+    ultima = falso.chamadas[-1]
+    assert "VOLTOU a responder" in ultima[-1]["content"]
+    nota_d3 = falso.chamadas[2][-1]["content"]
+    assert "3 dias" in nota_d3
+
+
+def test_followup_fora_da_janela_usa_template(monkeypatch):
+    enviados = []
+
+    async def template(para, nome, params):
+        enviados.append((para, nome, params))
+
+    monkeypatch.setattr(config, "WHATSAPP_TOKEN", "x")
+    monkeypatch.setattr(config, "WHATSAPP_PHONE_NUMBER_ID", "1")
+    monkeypatch.setattr(config, "FOLLOWUP_HORARIO", (0, 24))
+    monkeypatch.setattr(config, "FOLLOWUP_TEMPLATES", {"3": "orya_d3", "mensal": "orya_mensal"})
+    monkeypatch.setattr(config, "GRUPO_VIP_LINK", "https://chat.whatsapp.com/xyz")
+    monkeypatch.setattr(whatsapp, "enviar_template", template)
+    tel = "5511912345678"
+    db.garantir_contato(tel)
+    db.atualizar_contato(tel, status="em_conversa", followups_enviados=1, ficha={"nome": "Ana"},
+                         ultima_msg_cliente_em=(db.agora() - timedelta(days=3, minutes=1)).isoformat(),
+                         ultima_msg_bot_em=(db.agora() - timedelta(days=2)).isoformat())
+    asyncio.run(rotinas.followups())
+    assert enviados == [(tel, "orya_d3", ["Ana"])]
+    # etapa sem template: não envia e avisa no painel
+    db.atualizar_contato(tel, ultima_msg_cliente_em=(db.agora() - timedelta(days=8)).isoformat())
+    asyncio.run(rotinas.followups())
+    assert len(enviados) == 1 and db.listar_avisos()[0]["tipo"] == "followup_pendente"
+    db.atualizar_contato(tel, followups_enviados=5, ultima_msg_cliente_em=(db.agora() - timedelta(days=61)).isoformat())
+    asyncio.run(rotinas.followups())
+    assert enviados[-1] == (tel, "orya_mensal", ["Ana", "https://chat.whatsapp.com/xyz"])
+
+
+def test_agendado_nao_recebe_followup(monkeypatch):
+    monkeypatch.setattr(config, "FOLLOWUP_HORARIO", (0, 24))
+    tel = "teste-ag"
+    db.garantir_contato(tel, "teste")
+    db.atualizar_contato(tel, status="agendado", ultima_msg_cliente_em=(db.agora() - timedelta(days=5)).isoformat(),
+                         ultima_msg_bot_em=(db.agora() - timedelta(days=4)).isoformat())
+    asyncio.run(rotinas.followups())
+    assert db.obter_contato(tel)["followups_enviados"] == 0
+
+
+def test_ligacao_e_email(monkeypatch):
+    emails = []
+    monkeypatch.setattr(relatorio, "_enviar", lambda assunto, texto, h=None: emails.append((assunto, texto)))
+    monkeypatch.setattr(config, "SMTP_USUARIO", "bot@x.com")
+    monkeypatch.setattr(config, "SMTP_SENHA", "s")
+    monkeypatch.setattr(config, "RELATORIO_EMAIL", ["dono@x.com"])
+    falso = ClaudeFalso([
+        ([ferramenta("solicitar_ligacao", {"motivo": "muitas dúvidas", "melhor_horario": "após 18h",
+                                           "resumo": "quer harmonização"}),
+          ferramenta("atualizar_ficha", {"nome_completo": "Paula Lima", "email": "paula@x.com",
+                                         "aceita_email_marketing": True, "resumo_conversa": "Quer harmonização.",
+                                         "temperatura": "quente"}, "t2")], "tool_use"),
+        ([texto("Combinado, Paula! Vão te ligar depois das 18h.")], "end_turn"),
+    ])
+    monkeypatch.setattr(cerebro, "_chamar", falso)
+    tel = "5511933332222"
+    db.garantir_contato(tel)
+    asyncio.run(cerebro.responder(tel, [{"type": "text", "text": "pode me ligar?"}]))
+    assert emails[0][0] == "ORYA · Cliente pediu ligação" and "+5511933332222" in emails[0][1]
+    # dois resultados de ferramenta voltam numa única mensagem
+    assert len(falso.chamadas[1][-1]["content"]) == 2
+    texto_rel, html_rel, n = relatorio.montar_relatorio(db.agora() - timedelta(hours=24))
+    assert n == 1 and "Paula Lima" in texto_rel and "paula@x.com" in texto_rel and "LIGAÇÕES PEDIDAS" in texto_rel
+
+
+def test_exportar_csv():
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    db.garantir_contato("5511944443333")
+    db.atualizar_contato("5511944443333", ficha={"nome_completo": "Bia Reis", "email": "bia@x.com",
+                                                 "aceita_email_marketing": True})
+    with TestClient(app) as cli:
+        r = cli.get("/api/exportar.csv")
+    assert "Bia Reis,bia@x.com,sim,5511944443333" in r.text
+
+
+def test_prompt_regras_de_preco():
+    p = cerebro.prompt_sistema()
+    assert "Suelen" not in p
+    for trecho in ("R$ 1.100", "R$ 1.400", "R$ 229", "R$ 1.037", "R$ 150", "R$ 200", "10x sem juros"):
+        assert trecho in p

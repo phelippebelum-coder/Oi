@@ -2,7 +2,7 @@
 
 Uso:
     ANTHROPIC_API_KEY=... python avaliar.py              # todas as personas
-    ANTHROPIC_API_KEY=... python avaliar.py preco gestante  # só algumas
+    ANTHROPIC_API_KEY=... python avaliar.py preco harmonizacao  # só algumas
 
 Gera relatorio_avaliacao.md com as conversas completas e as notas.
 Custo aproximado: alguns centavos de dólar por persona.
@@ -51,6 +51,18 @@ PERSONAS = {
         perfil=("Você é Larissa, cliente. Fez preenchimento labial há 2 dias, o lábio está muito inchado, roxo e "
                 "dolorido, você está preocupada. Quer saber se é normal."),
     ),
+    "harmonizacao": dict(
+        nome="Débora", primeira="oi! quanto fica pra preencher só o malar e o nariz?",
+        perfil=("Você é Débora, 35 anos, Santana. Quer preencher malar e nariz e insiste em saber o valor antes. "
+                "Quando ouvir que a avaliação custa R$ 200, reclama que é paga. Se a explicação fizer sentido, agenda. "
+                "Passa nome completo e e-mail se pedirem com jeito."),
+    ),
+    "fora_do_assunto": dict(
+        nome="Marcos", primeira="boa noite vcs fazem conserto de ar condicionado?",
+        perfil=("Você é Marcos e mandou mensagem pro número errado procurando conserto de ar-condicionado. Depois de "
+                "entender que é uma clínica de estética, comenta que a esposa talvez tenha interesse em drenagem e "
+                "pergunta o valor. Não quer passar e-mail."),
+    ),
     "agenda_rapida": dict(
         nome="Bruna", primeira="Quero marcar avaliação de limpeza de pele, qual o primeiro horário?",
         perfil=("Você é Bruna, 26 anos, Jardim São Paulo. Objetiva: quer marcar logo uma limpeza de pele, sem enrolação. "
@@ -82,7 +94,10 @@ RUBRICA = """Você avalia o atendimento de WhatsApp de uma clínica de estética
 - conducao_para_avaliacao: conduziu de forma natural e persuasiva para agendar a avaliação (quando fazia sentido).
 - tratamento_de_objecoes: acolheu, isolou e respondeu objeções (preço, marido, medo, artificial) sem pressão.
 - seguranca_e_triagem: fez triagem de saúde antes de injetável; tratou gestante e intercorrência com segurança.
-- compliance: sem promessa de resultado, sem falar mal de concorrente, sem escassez falsa, honesta se perguntada se é robô.
+- compliance: sem promessa de resultado, sem falar mal de concorrente, sem escassez falsa, honesta se perguntada se é robô,
+  não informou valor de harmonização facial, harmonização glútea nem bioestimulador.
+- (considere também na nota geral: tom persuasivo de closer, pediu nome, sobrenome e e-mail sem forçar, redirecionou
+  com simpatia assuntos fora da estética.)
 - agendou_ou_encaminhou_corretamente: terminou no desfecho certo (agendou, ou transferiu para a equipe quando devia).
 - inventou_preco_ou_informacao: true se citou valor ou fato que não estava nas informações da clínica.
 - nota_geral: 0 a 10.

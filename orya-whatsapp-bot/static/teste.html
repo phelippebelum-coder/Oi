@@ -48,7 +48,7 @@
       <label>ID: <input type="text" id="tel" size="8"></label>
       <label><input type="checkbox" id="retorno"> já é cliente</label>
       <label>Veio do anúncio: <input type="text" id="anuncio" placeholder="(opcional) título do anúncio" size="22"></label>
-      <button class="sec" id="btnFollow" title="Finge que ela sumiu por horas">Simular sumiço</button>
+      <button class="sec" id="btnFollow" title="Finge que ela sumiu e manda o próximo follow-up da cadência">Simular sumiço (próximo follow-up)</button>
       <button class="sec" id="btnNova">Nova conversa</button>
     </div>
     <div id="chat"></div>
@@ -132,9 +132,10 @@ $('#btnNova').onclick = async () => {
 
 $('#btnFollow').onclick = async () => {
   if (!telefone) return;
-  bolha('sistema', '(simulando que a cliente ficou horas sem responder...)');
   $('#digitando').textContent = 'digitando...';
-  await fetch(`/api/teste/followup/${telefone}`, { method: 'POST' });
+  const r = await fetch(`/api/teste/followup/${telefone}`, { method: 'POST' });
+  const d = await r.json();
+  bolha('sistema', d.etapa === 'mensal' ? '(simulando: mais 30 dias sem resposta, mensagem mensal)' : `(simulando: ${d.etapa} dia(s) sem resposta)`);
 };
 
 // retoma conversa salva

@@ -4,16 +4,45 @@ import asyncio
 import logging
 from datetime import datetime, timedelta
 
-from . import agenda, config, db, processador, whatsapp
+from . import agenda, config, db, processador, relatorio, whatsapp
 
 log = logging.getLogger("orya.rotinas")
 
-NOTA_FOLLOWUP = (
-    "A cliente parou de responder há algumas horas. Envie UM follow-up curto (1 ou 2 balões), "
-    "retomando com carinho a queixa ou o motivo dela e trazendo algo novo e útil (tirar uma dúvida comum, "
-    "ou duas opções reais de horário via ver_horarios). Nada de cobrança, nada de 'e aí?'. "
-    "Se ela já tinha dito que não queria agora, apenas deixe a porta aberta, sem pergunta de venda."
-)
+# O que cada etapa da cadência deve trazer (cadência A da ORYA: lead que não agendou).
+NOTAS_ETAPA = {
+    "1": ("Ela parou de responder há quase um dia. Retome com carinho a queixa ou o motivo dela, com as palavras "
+          "dela, e traga algo novo e útil. Termine com uma pergunta leve."),
+    "3": ("Ela está há 3 dias sem responder. Tire uma dúvida comum de quem está na fase dela (dor, naturalidade, "
+          "tempo de recuperação ou como funciona a avaliação), sem cobrança."),
+    "7": "Ela está há 7 dias sem responder. Ofereça duas opções reais de horário (use ver_horarios) de forma leve.",
+    "15": ("Ela está há 15 dias sem responder. Mensagem de porta aberta: você lembrou dela, a ORYA está aqui quando "
+           "ela quiser. Sem pressão."),
+    "30": ("Ela está há 30 dias sem responder. Reativação: pergunte como ela está e se aquele incômodo ainda a "
+           "acompanha, convidando de novo para a avaliação."),
+    "mensal": ("Mensagem mensal de relacionamento: conte que este mês tem condições especiais na clínica e "
+               "convide para o grupo VIP da ORYA no WhatsApp, onde saem as novidades em primeira mão. "
+               "Sem citar valores. Link do grupo: {link}"),
+}
+REGRA_FOLLOWUP = (" Envie UM follow-up curto (1 ou 2 balões), humano, como alguém que lembrou dela de verdade. "
+                  "Nada de 'e aí?', nada de cobrança pelo sumiço. Se ela já tinha dito que não queria agora, só deixe "
+                  "a porta aberta, sem pergunta de venda.")
+MARCADOR_SILENCIO = "(a cliente não respondeu desde a sua última mensagem)"
+
+
+def etapa_followup(n: int) -> tuple[str, timedelta]:
+    """n = quantos follow-ups já foram enviados. Retorna (chave da etapa, silêncio necessário)."""
+    dias = config.FOLLOWUP_DIAS
+    if n < len(dias):
+        limiar = timedelta(days=dias[n])
+        if limiar <= timedelta(days=1):
+            limiar = min(limiar, timedelta(hours=23))  # ainda dentro da janela de 24h do WhatsApp
+        return f"{dias[n]:g}", limiar
+    return "mensal", timedelta(days=dias[-1] + config.FOLLOWUP_MENSAL_DIAS * (n - len(dias) + 1))
+
+
+def nota_etapa(chave: str) -> str:
+    base = NOTAS_ETAPA.get(chave) or NOTAS_ETAPA["30"]
+    return base.format(link=config.GRUPO_VIP_LINK or "(ainda não configurado, não cite link)") + REGRA_FOLLOWUP
 
 
 async def laco():
@@ -21,8 +50,9 @@ async def laco():
         try:
             if config.LEMBRETES_ATIVOS:
                 await lembretes()
-            if config.FOLLOWUP_HORAS > 0:
+            if config.FOLLOWUP_ATIVO:
                 await followups()
+            await relatorio.relatorio_diario_se_for_hora()
         except Exception:
             log.exception("Erro nas rotinas")
         await asyncio.sleep(60)
@@ -86,24 +116,55 @@ async def lembretes():
 
 async def followups():
     agora_local = datetime.now(config.TZ)
-    if not (9 <= agora_local.hour < 21):
+    if not (config.FOLLOWUP_HORARIO[0] <= agora_local.hour < config.FOLLOWUP_HORARIO[1]):
         return
-    limite = timedelta(hours=config.FOLLOWUP_HORAS)
     for contato in db.listar_contatos():
-        if contato["status"] not in ("em_conversa", "qualificado") or contato["followups_enviados"]:
+        if contato["status"] in ("agendado", "humano", "opt_out"):
             continue
         if processador.bot_pausado(contato) or db.agendamentos_ativos(contato["telefone"]):
             continue
         cli, bot = contato.get("ultima_msg_cliente_em"), contato.get("ultima_msg_bot_em")
         if not cli or not bot or bot < cli:
             continue
-        silencio = db.agora() - datetime.fromisoformat(cli)
-        if not (limite <= silencio < timedelta(hours=23, minutes=30)):
+        chave, limiar = etapa_followup(contato["followups_enviados"])
+        if db.agora() - datetime.fromisoformat(cli) < limiar:
             continue
-        db.atualizar_contato(contato["telefone"], followups_enviados=1)
-        log.info("Follow-up para %s", contato["telefone"])
+        await enviar_followup(contato, chave)
+
+
+async def enviar_followup(contato: dict, chave: str):
+    tel = contato["telefone"]
+    n = contato["followups_enviados"] + 1
+    campos = {"followups_enviados": n}
+    if n >= 3 and contato["temperatura"] != "fria":
+        campos["temperatura"] = "fria"
+    db.atualizar_contato(tel, **campos)
+    log.info("Follow-up %s (etapa %s) para %s", n, chave, tel)
+
+    # Dentro da janela de 24h (ou na página de teste) o Claude escreve a mensagem personalizada.
+    if contato["canal"] == "teste" or _dentro_da_janela(contato):
         await processador.responder_e_enviar(
-            contato["telefone"], contato["canal"],
-            [{"type": "text", "text": "(a cliente não respondeu desde a sua última mensagem)"}],
-            NOTA_FOLLOWUP,
-        )
+            tel, contato["canal"], [{"type": "text", "text": MARCADOR_SILENCIO}], nota_etapa(chave))
+        return
+
+    # Fora da janela, o WhatsApp só aceita template aprovado.
+    template = config.FOLLOWUP_TEMPLATES.get(chave)
+    if not template or not whatsapp.configurado():
+        db.criar_aviso(tel, "followup_pendente",
+                       f"Follow-up da etapa {chave} não enviado para +{tel}: falta o template '{chave}' em "
+                       "FOLLOWUP_TEMPLATES.")
+        return
+    parametros = [_nome(contato)]
+    if chave == "mensal" and config.GRUPO_VIP_LINK:
+        parametros.append(config.GRUPO_VIP_LINK)
+    try:
+        await whatsapp.enviar_template(tel, template, parametros)
+    except Exception:
+        log.exception("Falha no template de follow-up")
+        db.criar_aviso(tel, "followup_pendente", f"Erro ao enviar o template '{template}' para +{tel}.")
+        return
+    texto = f"(follow-up automático enviado: template {template}, etapa {chave})"
+    db.registrar_conversa(tel, "bot", texto)
+    if db.obter_historico(tel):
+        db.adicionar_historico(tel, "assistant", [{"type": "text", "text": texto}])
+    db.atualizar_contato(tel, ultima_msg_bot_em=db.agora_iso())

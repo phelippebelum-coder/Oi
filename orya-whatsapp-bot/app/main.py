@@ -109,19 +109,15 @@ async def teste_reiniciar(m: MsgTeste):
 
 @app.post("/api/teste/followup/{telefone}", dependencies=[Depends(autenticar)])
 async def teste_followup(telefone: str):
-    """Simula que a cliente ficou horas sem responder, para ver o follow-up."""
+    """Simula o próximo passo da cadência (1, 3, 7, 15, 30 dias, mensal) como se ela tivesse sumido."""
     contato = db.obter_contato(telefone)
     if not contato:
         raise HTTPException(404)
-    passado = (db.agora() - timedelta(hours=config.FOLLOWUP_HORAS or 20)).isoformat()
-    db.atualizar_contato(telefone, ultima_msg_cliente_em=passado, followups_enviados=0)
-    await processador.responder_e_enviar(
-        telefone, contato["canal"],
-        [{"type": "text", "text": "(a cliente não respondeu desde a sua última mensagem)"}],
-        rotinas.NOTA_FOLLOWUP,
-    )
-    db.atualizar_contato(telefone, followups_enviados=1)
-    return {"ok": True}
+    chave, limiar = rotinas.etapa_followup(contato["followups_enviados"])
+    passado = (db.agora() - limiar - timedelta(minutes=1)).isoformat()
+    db.atualizar_contato(telefone, ultima_msg_cliente_em=passado)
+    await rotinas.enviar_followup(db.obter_contato(telefone), chave)
+    return {"etapa": chave}
 
 
 # ---------- painel ----------
@@ -203,6 +199,23 @@ async def avisos():
 async def avisos_lidos():
     db.marcar_avisos_lidos()
     return {"ok": True}
+
+
+@app.get("/api/exportar.csv", dependencies=[Depends(autenticar)])
+async def exportar():
+    """Lista para e-mail marketing: nome, e-mail, WhatsApp e categoria."""
+    saida = io.StringIO()
+    w = csv.writer(saida)
+    w.writerow(["nome", "email", "aceita_email_marketing", "whatsapp", "tipo", "status", "temperatura", "interesses"])
+    for c in db.listar_contatos():
+        if c["canal"] == "teste":
+            continue
+        f = c["ficha"]
+        w.writerow([f.get("nome_completo") or f.get("nome") or c.get("perfil_nome") or "", f.get("email") or "",
+                    "sim" if f.get("aceita_email_marketing") else "não", c["telefone"], c["tipo"], c["status"],
+                    c["temperatura"] or "", c.get("interesses") or ""])
+    return PlainTextResponse(saida.getvalue(), media_type="text/csv",
+                             headers={"Content-Disposition": "attachment; filename=contatos_orya.csv"})
 
 
 class Importacao(BaseModel):

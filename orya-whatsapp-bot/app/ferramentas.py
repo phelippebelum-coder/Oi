@@ -18,8 +18,9 @@ FERRAMENTAS = [
             "additionalProperties": False,
             "properties": {
                 "nome": {"type": "string", "description": "Como ela gosta de ser chamada"},
-                "nome_completo": {"type": "string"},
-                "data_nascimento": {"type": "string", "description": "DD/MM/AAAA"},
+                "nome_completo": {"type": "string", "description": "Nome e sobrenome"},
+                "email": {"type": "string"},
+                "aceita_email_marketing": {"type": "boolean", "description": "Passou o e-mail sabendo das novidades"},
                 "bairro": {"type": "string"},
                 "como_conheceu": {"type": "string", "description": "Instagram, anúncio, indicação de quem, Google..."},
                 "melhor_periodo": {"type": "string", "enum": ["manha", "tarde", "noite"]},
@@ -42,6 +43,10 @@ FERRAMENTAS = [
                 "etapa": {"type": "string", "enum": ETAPAS},
                 "tipo": {"type": "string", "enum": ["lead", "cliente"], "description": "cliente = já fez procedimento na ORYA"},
                 "opt_out": {"type": "boolean", "description": "true se ela pediu para não receber mensagens"},
+                "resumo_conversa": {
+                    "type": "string",
+                    "description": "2 ou 3 frases sobre onde a conversa está (vai para o relatório do dono)",
+                },
                 "observacoes": {"type": "string"},
             },
         },
@@ -56,25 +61,22 @@ FERRAMENTAS = [
             "type": "object",
             "additionalProperties": False,
             "properties": {
-                "profissional": {
-                    "type": "string", "enum": ["danielly", "suelen"],
-                    "description": "danielly = faciais; suelen = corporais",
-                },
                 "a_partir_de": {"type": "string", "description": "Data AAAA-MM-DD (opcional)"},
                 "periodo": {"type": "string", "enum": ["manha", "tarde", "noite"]},
             },
-            "required": ["profissional"],
         },
     },
     {
         "name": "agendar_avaliacao",
-        "description": "Agenda a avaliação no horário que a cliente escolheu (precisa ter vindo de ver_horarios).",
+        "description": (
+            "Agenda a avaliação com a Dra. Danielly no horário que a cliente escolheu (precisa ter vindo de "
+            "ver_horarios). Antes, ela precisa saber o valor da avaliação e a regra de falta."
+        ),
         "input_schema": {
             "type": "object",
             "additionalProperties": False,
             "properties": {
                 "inicio": {"type": "string", "description": "Data e hora ISO exatamente como veio de ver_horarios"},
-                "profissional": {"type": "string", "enum": ["danielly", "suelen"]},
                 "procedimento_interesse": {"type": "string"},
                 "resumo_para_equipe": {
                     "type": "string",
@@ -84,7 +86,7 @@ FERRAMENTAS = [
                     ),
                 },
             },
-            "required": ["inicio", "profissional", "procedimento_interesse", "resumo_para_equipe"],
+            "required": ["inicio", "procedimento_interesse", "resumo_para_equipe"],
         },
     },
     {
@@ -100,6 +102,23 @@ FERRAMENTAS = [
                 "motivo": {"type": "string"},
             },
             "required": ["acao", "agendamento_id"],
+        },
+    },
+    {
+        "name": "solicitar_ligacao",
+        "description": (
+            "Pede para a equipe LIGAR para a cliente (ela pediu ligação ou precisa de atenção maior). "
+            "Não pausa o atendimento por mensagem."
+        ),
+        "input_schema": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "motivo": {"type": "string"},
+                "melhor_horario": {"type": "string", "description": "Quando ela prefere receber a ligação"},
+                "resumo": {"type": "string", "description": "O que quem for ligar precisa saber"},
+            },
+            "required": ["motivo", "resumo"],
         },
     },
     {
@@ -153,6 +172,8 @@ async def executar(nome: str, entrada: dict, telefone: str) -> str:
         return await _remarcar(contato, entrada)
     if nome == "transferir_para_humano":
         return await _transferir(contato, entrada)
+    if nome == "solicitar_ligacao":
+        return await _ligacao(contato, entrada)
     if nome == "avisar_equipe":
         await equipe.notificar(telefone, "aviso", f"ORYA bot · {_rotulo_contato(contato)}\n{entrada.get('motivo', '')}")
         return "Equipe avisada. Continue o atendimento normalmente."
@@ -195,7 +216,7 @@ def _ver_horarios(entrada: dict) -> str:
             a_partir = date.fromisoformat(entrada["a_partir_de"])
         except ValueError:
             pass
-    prof = entrada.get("profissional", "danielly")
+    prof = "danielly"
     livres = agenda.horarios_livres(prof, a_partir, entrada.get("periodo"))
     if not livres:
         return "Sem horários livres nesse filtro. Tente outro período ou outra data."
@@ -223,7 +244,7 @@ async def _agendar(contato: dict, entrada: dict) -> str:
             "Use remarcar_ou_cancelar se ela quiser mudar."
         )
     inicio = _parse_inicio(entrada.get("inicio"))
-    prof = entrada.get("profissional", "danielly")
+    prof = "danielly"
     if not inicio:
         return "Data inválida. Use o ISO exatamente como veio de ver_horarios."
     motivo = agenda.validar_horario(inicio, prof)
@@ -276,6 +297,18 @@ async def _remarcar(contato: dict, entrada: dict) -> str:
     return f"Remarcado para {agenda.descrever(novo)}. Confirme com ela."
 
 
+async def _ligacao(contato: dict, entrada: dict) -> str:
+    tel = contato["telefone"]
+    await equipe.notificar(
+        tel, "ligacao",
+        f"📞 Cliente pediu ligação / precisa de atenção\n{_rotulo_contato(contato)}\n"
+        f"Ligar para: +{tel}\nMelhor horário: {entrada.get('melhor_horario') or 'não informado'}\n"
+        f"Motivo: {entrada.get('motivo')}\n\n{entrada.get('resumo', '')}",
+    )
+    return ("Pedido de ligação enviado para a equipe. Avise a cliente com carinho que vão ligar "
+            "(no horário que ela preferir, entre 8h e 20h) e continue a conversa normalmente.")
+
+
 async def _transferir(contato: dict, entrada: dict) -> str:
     tel = contato["telefone"]
     ate = db.agora() + timedelta(hours=max(config.PAUSA_HUMANO_HORAS, 24))
@@ -288,5 +321,5 @@ async def _transferir(contato: dict, entrada: dict) -> str:
     )
     return (
         "Transferido e bot pausado. Escreva só uma mensagem curta e acolhedora avisando que alguém da equipe "
-        "continua com ela por aqui (fora das 9h às 20h, diga que retornam a partir das 9h). Não continue a venda."
+        "continua com ela por aqui (fora das 8h às 20h, diga que retornam a partir das 8h). Não continue a venda."
     )

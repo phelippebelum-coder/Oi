@@ -50,7 +50,7 @@
   <button data-aba="leads" class="ativo">Leads e clientes</button>
   <button data-aba="agenda">Avaliações</button>
   <button data-aba="avisos">Avisos <span id="nAvisos"></span></button>
-  <button data-aba="importar">Importar clientes</button>
+  <button data-aba="importar">Importar / exportar</button>
 </nav>
 <main>
   <section id="aba-leads" class="cartao">
@@ -70,6 +70,8 @@
     <p>Cole uma lista de clientes que já são da ORYA (CSV com cabeçalho). Quando elas mandarem mensagem, o bot reconhece como cliente de retorno e já fala de manutenção.</p>
     <textarea id="csv" rows="10" style="width:100%" placeholder="telefone,nome,ultimo_procedimento,data_ultimo_procedimento&#10;11999998888,Maria Souza,toxina,2026-06-10"></textarea>
     <p><button class="acao" id="btnImp">Importar</button> <span id="impRes"></span></p>
+    <hr><p>Exportar todos os contatos (nome, e-mail, WhatsApp e categoria) para usar no e-mail marketing:</p>
+    <p><a class="acao" style="text-decoration:none;display:inline-block" href="/api/exportar.csv">Baixar CSV</a></p>
   </section>
 </main>
 <div id="detalhe"></div>
@@ -92,6 +94,7 @@ function etiquetas(c) {
     `<span class="etq">${esc(c.status)}</span>` +
     (c.temperatura ? `<span class="etq ${c.temperatura}">${esc(c.temperatura)}</span>` : '') +
     (c.origem ? `<span class="etq">${esc(c.origem)}</span>` : '') +
+    (c.followups_enviados ? `<span class="etq">follow-up ${c.followups_enviados}</span>` : '') +
     (c.bot_pausado ? `<span class="etq quente">bot pausado</span>` : '');
 }
 

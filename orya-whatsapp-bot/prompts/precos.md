@@ -1,22 +1,32 @@
-# Tabela de preços (PREENCHER)
+# Tabela de preços e condições
 
-Edite este arquivo com os valores reais. O bot só informa o que estiver aqui.
-Onde estiver [PREENCHER], o bot diz que vai confirmar o valor com a equipe e avisa vocês.
+O bot só informa o que estiver aqui. O que tiver [PREENCHER] ou não estiver na lista, ele diz que vai confirmar e avisa o Phelippe.
 
-Parcelamento: até 12x no cartão. À vista (Pix/dinheiro): cerca de 10% de desconto, quando houver valor à vista na tabela.
-Avaliação: [PREENCHER: gratuita ou valor? abate do procedimento?]
+## Condições de pagamento (valem para todos os procedimentos com valor abaixo)
+- Até 10x sem juros no cartão.
+- Ou 10% de desconto no Pix ou dinheiro (os valores com desconto já estão calculados abaixo).
 
-## Valores fechados
-- Toxina botulínica (botox), 3 regiões: [PREENCHER], inclui retorno em 15 dias
-- Blefaroplastia sem corte com jato de plasma, 3 sessões: R$ 1.000 em até 12x ou R$ 900 à vista
-- Limpeza de pele: [PREENCHER]
-- Lipo de papada enzimática (por sessão): [PREENCHER]
+## Avaliação com a Dra. Danielly
+- Valor: R$ 200.
+- O valor é 100% abatido de qualquer procedimento que ela fechar (ou seja, se fechar, a avaliação sai de graça).
+- Se ela não comparecer, o valor da avaliação não é devolvido.
+- Forma e momento do pagamento da avaliação: [PREENCHER]
 
-## Valores variáveis (informar "a partir de" e que o valor exato sai na avaliação)
-- Preenchimento labial: a partir de [PREENCHER]
-- Preenchimento facial: a partir de [PREENCHER]
-- Bioestimulador de colágeno (Radiesse/Sculptra): a partir de [PREENCHER]
-- Skinbooster / Profhilo: a partir de [PREENCHER]
-- Fios de PDO: a partir de [PREENCHER]
-- Ultraformer: a partir de [PREENCHER]
-- Corporais (Dra. Suelen): a partir de [PREENCHER]
+## Procedimentos com valor que pode ser informado
+- Toxina botulínica (botox) terço superior: R$ 1.100 em até 10x sem juros, ou R$ 990 no Pix/dinheiro. Inclui retorno em 15 dias.
+- Toxina botulínica (botox) face completa: R$ 1.400 em até 10x sem juros, ou R$ 1.260 no Pix/dinheiro. Inclui retorno em 15 dias.
+- Preenchimento labial (1 ml): R$ 1.100 em até 10x sem juros, ou R$ 990 no Pix/dinheiro.
+- Limpeza de pele: R$ 150 (ou R$ 135 no Pix/dinheiro).
+- Drenagem linfática: R$ 229 por sessão (ou R$ 206,10 no Pix/dinheiro).
+- Drenagem linfática, pacote com 5 sessões: R$ 1.037 em até 10x sem juros (ou R$ 933,30 no Pix/dinheiro). Sai mais em conta que 5 sessões avulsas (R$ 1.145).
+- Blefaroplastia sem corte com jato de plasma, 3 sessões: R$ 1.000 em até 10x sem juros, ou R$ 900 no Pix/dinheiro.
+
+## Procedimentos SEM valor por mensagem (só na avaliação com a Dra. Danielly)
+Não informe valor, nem "a partir de". Explique que dependem da análise do rosto/corpo dela e convide para a avaliação (R$ 200, abatidos se fechar):
+- Harmonização facial (qualquer combinação de áreas, por exemplo malar, nariz, mandíbula, queixo, olheiras).
+- Preenchimento de outras áreas que não o labial de 1 ml (malar, nariz, mandíbula etc.).
+- Harmonização glútea.
+- Bioestimulador de colágeno (facial ou corporal).
+
+## Qualquer outro procedimento
+Não invente valor. Diga que vai confirmar o valor certinho e use `avisar_equipe`. Continue levando para a avaliação.

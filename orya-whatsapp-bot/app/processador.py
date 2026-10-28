@@ -13,6 +13,7 @@ _pendentes: dict[str, list[dict]] = {}
 _timers: dict[str, asyncio.Task] = {}
 _travas: dict[str, asyncio.Lock] = {}
 _ultimo_id: dict[str, str] = {}
+_notas: dict[str, str] = {}
 
 IMAGENS_SUPORTADAS = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 
@@ -32,6 +33,13 @@ async def receber_mensagem(evento: dict, canal: str = "whatsapp"):
     contato = db.garantir_contato(tel, canal, evento.get("nome"))
     if evento.get("referral") and not contato.get("referral"):
         db.atualizar_contato(tel, referral=evento["referral"], origem="anuncio")
+    if contato["followups_enviados"] and contato.get("ultima_msg_cliente_em"):
+        # Lead resgatada: voltou a responder depois dos follow-ups. A cadência recomeça do zero.
+        dias = (db.agora() - datetime.fromisoformat(contato["ultima_msg_cliente_em"])).days
+        _notas[tel] = (f"A cliente VOLTOU a responder depois de {dias} dia(s) sem retorno e "
+                       f"{contato['followups_enviados']} follow-up(s). Siga 'Leads que voltaram a responder'.")
+        if contato["temperatura"] == "fria":
+            db.atualizar_contato(tel, temperatura="morna")
     db.atualizar_contato(tel, ultima_msg_cliente_em=db.agora_iso(), followups_enviados=0)
 
     blocos = await _converter(evento, canal)
@@ -64,7 +72,7 @@ async def _processar_depois(tel: str, canal: str):
         _timers.pop(tel, None)
         if not blocos:
             return
-        await responder_e_enviar(tel, canal, blocos)
+        await responder_e_enviar(tel, canal, blocos, _notas.pop(tel, None))
 
 
 async def responder_e_enviar(tel: str, canal: str, blocos: list[dict], nota: str | None = None):

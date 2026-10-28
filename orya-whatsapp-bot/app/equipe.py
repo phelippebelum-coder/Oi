@@ -2,7 +2,7 @@
 
 import logging
 
-from . import config, db, whatsapp
+from . import config, db, relatorio, whatsapp
 
 log = logging.getLogger("orya.equipe")
 
@@ -12,6 +12,7 @@ async def notificar(telefone: str | None, tipo: str, texto: str):
     contato = db.obter_contato(telefone) if telefone else None
     if contato and contato["canal"] == "teste":
         return  # conversa da página de teste: só registra no painel
+    await relatorio.aviso_imediato(tipo, texto)
     if not whatsapp.configurado():
         return
     for numero in config.EQUIPE_WHATSAPP:
