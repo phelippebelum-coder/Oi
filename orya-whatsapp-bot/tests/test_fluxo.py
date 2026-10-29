@@ -700,3 +700,54 @@ def test_equipe_responde_durante_a_espera(monkeypatch):
     asyncio.run(rodar())
     assert not falso.chamadas and db.obter_contato(tel)["pendente"] is None
     assert db.obter_historico(tel)[0] == {"role": "user", "content": [{"type": "text", "text": "oi"}]}
+
+
+def test_fornecedor_recebe_uma_resposta_e_depois_silencio(monkeypatch):
+    falso = ClaudeFalso([
+        ([ferramenta("marcar_fornecedor", {"resumo": "Distribuidora X oferecendo ácido hialurônico"})], "tool_use"),
+        ([texto("Recebido, obrigada! Vou repassar pra equipe responsável.")], "end_turn"),
+        ([texto("Que legal! O botox do terço superior é R$ 1.100...")], "end_turn"),
+    ])
+    monkeypatch.setattr(cerebro, "_chamar", falso)
+    triagens = []
+
+    async def triagem(texto):
+        triagens.append(texto)
+        return "botox" in texto
+
+    monkeypatch.setattr(cerebro, "fornecedor_quer_servico", triagem)
+    tel = "5511922221111"
+
+    async def rodar():
+        await processador.receber_mensagem({"de": tel, "texto": "Bom dia, sou representante da Distribuidora X",
+                                            "msg_tipo": "text", "id": "f1"})
+        await esperar()
+        assert db.obter_contato(tel)["status"] == "fornecedor"
+        assert db.listar_avisos()[0]["tipo"] == "fornecedor"
+        for i, t in enumerate(("segue nosso catálogo", "conseguiu ver?")):
+            await processador.receber_mensagem({"de": tel, "texto": t, "msg_tipo": "text", "id": f"f2{i}"})
+            await esperar()
+        assert len(falso.chamadas) == 2  # nenhuma chamada ao Claude depois da primeira resposta
+        await processador.receber_mensagem({"de": tel, "texto": "aliás, quanto é o botox pra minha esposa?",
+                                            "msg_tipo": "text", "id": "f3"})
+        await esperar()
+
+    asyncio.run(rodar())
+    assert triagens == ["segue nosso catálogo", "conseguiu ver?", "aliás, quanto é o botox pra minha esposa?"]
+    assert len(falso.chamadas) == 3 and db.obter_contato(tel)["status"] == "em_conversa"
+    assert "marcado como fornecedor" in falso.chamadas[2][-1]["content"]
+    # o silêncio não perdeu o contexto: as mensagens do catálogo estão no histórico
+    assert any(b.get("text") == "segue nosso catálogo" for m in falso.chamadas[2] if m["role"] == "user"
+               for b in (m["content"] if isinstance(m["content"], list) else []))
+    conversa = [m["texto"] for m in db.obter_conversa(tel) if m["autor"] == "bot"]
+    assert conversa == ["Recebido, obrigada! Vou repassar pra equipe responsável.", "[pdf:apresentacao]",
+                        "Que legal! O botox do terço superior é R$ 1.100..."]
+
+
+def test_fornecedor_sem_followup(monkeypatch):
+    tel = "teste-forn"
+    db.garantir_contato(tel, "teste")
+    db.atualizar_contato(tel, status="fornecedor", ultima_msg_cliente_em=(db.agora() - timedelta(days=5)).isoformat(),
+                         ultima_msg_bot_em=(db.agora() - timedelta(days=4)).isoformat())
+    asyncio.run(rotinas.followups((db.agora() - timedelta(days=0)).astimezone(config.TZ).replace(hour=10)))
+    assert db.obter_contato(tel)["followups_enviados"] == 0

@@ -110,12 +110,22 @@ async def processar_pendente(tel: str):
         if bot_pausado(contato):
             db.adicionar_historico(tel, "user", pend["blocos"])
             return
+        nota = pend.get("nota")
+        if contato["status"] == "fornecedor":
+            # Fornecedor já recebeu a resposta: silêncio (sem gastar o Claude), a não ser que peça um serviço.
+            texto = "\n".join(b["text"] for b in pend["blocos"] if b.get("type") == "text")
+            if not texto or not await cerebro.fornecedor_quer_servico(texto):
+                db.adicionar_historico(tel, "user", pend["blocos"])
+                return
+            db.atualizar_contato(tel, status="em_conversa")
+            nota = ("Este contato tinha sido marcado como fornecedor, mas agora perguntou sobre um serviço da "
+                    "clínica. Atenda normalmente como lead.")
         canal = pend.get("canal", "whatsapp")
         if canal == "whatsapp" and whatsapp.configurado() and pend.get("ultimo_id"):
             # Só agora marca como lida e mostra "digitando...", como quem pegou o celular pra responder.
             _ultimo_id[tel] = pend["ultimo_id"]
             await whatsapp.marcar_lida_digitando(pend["ultimo_id"])
-        await responder_e_enviar(tel, canal, pend["blocos"], pend.get("nota"))
+        await responder_e_enviar(tel, canal, pend["blocos"], nota)
 
 
 async def retomar_pendentes():

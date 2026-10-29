@@ -135,6 +135,25 @@ async def _chamar(mensagens: list[dict]):
     )
 
 
+async def fornecedor_quer_servico(texto: str) -> bool:
+    """Fornecedor já respondido: só volta a ser atendido se pedir um serviço da clínica (modelo barato)."""
+    try:
+        resp = await cliente().messages.create(
+            model=config.CLAUDE_MODELO_TRIAGEM,
+            max_tokens=5,
+            system=("Você classifica mensagens que chegam no WhatsApp de uma clínica de estética. Quem escreve é um "
+                    "fornecedor ou vendedor. Responda SIM só se a mensagem mostra interesse em fazer ou comprar um "
+                    "procedimento/serviço da clínica (para si ou para presentear alguém): perguntar preço de "
+                    "procedimento, horário, agendamento, avaliação. Oferta de produto, catálogo, cobrança, "
+                    "cumprimento ou insistência na venda dele: NAO. Responda só SIM ou NAO."),
+            messages=[{"role": "user", "content": texto[:2000]}],
+        )
+        return any(b.type == "text" and b.text.strip().upper().startswith("SIM") for b in resp.content)
+    except anthropic.APIError:
+        log.warning("Falha na triagem de fornecedor; segue sem responder", exc_info=True)
+        return False
+
+
 def parece_anotacao_interna(texto: str) -> bool:
     return any(p.search(texto) for p in _VAZAMENTO)
 

@@ -60,7 +60,7 @@
     <div class="filtros">
       <input id="busca" placeholder="Buscar nome, telefone, interesse...">
       <select id="fTipo"><option value="">Todos os tipos</option><option value="lead">Leads novos</option><option value="cliente">Clientes de retorno</option></select>
-      <select id="fStatus"><option value="">Todos os status</option><option>novo</option><option>em_conversa</option><option>qualificado</option><option>agendado</option><option>humano</option><option>perdido</option><option>opt_out</option></select>
+      <select id="fStatus"><option value="">Todos os status</option><option>novo</option><option>em_conversa</option><option>qualificado</option><option>agendado</option><option>humano</option><option>perdido</option><option>fornecedor</option><option>opt_out</option></select>
       <select id="fTemp"><option value="">Qualquer temperatura</option><option>quente</option><option>morna</option><option>fria</option></select>
       <label><input type="checkbox" id="fTeste"> mostrar testes</label>
     </div>
@@ -140,7 +140,8 @@ async function abrir(tel) {
     <h2>${esc(nome(c))}</h2><div>${esc(c.telefone)}</div><div style="margin:6px 0">${etiquetas(c)}</div>
     <div>${c.bot_pausado ? `<button class="acao" onclick="acao('${esc(tel)}',{bot:'retomar'})">▶ Devolver para o bot</button>` : `<button class="acao" onclick="acao('${esc(tel)}',{bot:'pausar'})">⏸ Pausar bot (equipe assume)</button>`}
     ${c.tipo === 'cliente' ? `<button class="acao sec" onclick="acao('${esc(tel)}',{tipo:'lead'})">Marcar como lead</button>` : `<button class="acao sec" onclick="acao('${esc(tel)}',{tipo:'cliente'})">Marcar como cliente</button>`}
-    <button class="acao sec" onclick="acao('${esc(tel)}',{status:'perdido'})">Marcar perdido</button></div>
+    <button class="acao sec" onclick="acao('${esc(tel)}',{status:'perdido'})">Marcar perdido</button>
+    ${c.status === 'fornecedor' ? `<button class="acao sec" onclick="acao('${esc(tel)}',{status:'em_conversa'})">Não é fornecedor (bot volta a atender)</button>` : `<button class="acao sec" onclick="acao('${esc(tel)}',{status:'fornecedor'})">Marcar fornecedor</button>`}</div>
     <dl>${Object.entries(f).map(([k, v]) => `<dt>${esc(k.replace(/_/g, ' '))}</dt><dd>${esc(Array.isArray(v) ? v.join(', ') : v)}</dd>`).join('') || '<dd>Ficha vazia</dd>'}</dl>
     ${d.agendamentos.map(a => `<dl><dt>📅 ${dt(a.inicio)} · ${esc(a.profissional)} · ${esc(a.status)}</dt><dd>${esc(a.resumo)}</dd></dl>`).join('')}
     <h3>Conversa</h3><div class="conv">${d.conversa.map(m => `<div class="m ${m.autor}">${fotoOuTexto(m.texto)}<br><small>${dt(m.criado_em)}${m.autor === 'equipe' ? ' · equipe' : ''}</small></div>`).join('')}</div>`;

@@ -218,7 +218,7 @@ async def followups(agora_local: datetime | None = None):
     if not horario_de_followup(agora_local):
         return
     for contato in db.listar_contatos():
-        if contato["status"] in ("agendado", "humano", "opt_out"):
+        if contato["status"] in ("agendado", "humano", "opt_out", "fornecedor"):
             continue
         if processador.bot_pausado(contato) or db.agendamentos_ativos(contato["telefone"]):
             continue

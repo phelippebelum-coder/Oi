@@ -170,6 +170,20 @@ FERRAMENTAS = [
         },
     },
     {
+        "name": "marcar_fornecedor",
+        "description": (
+            "Use quando quem escreve é fornecedor, representante, vendedor ou empresa oferecendo produto, serviço "
+            "ou parceria comercial para a clínica (não é cliente). Depois desta resposta você não responde mais "
+            "esse contato; a equipe responde quando puder."
+        ),
+        "input_schema": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"resumo": {"type": "string", "description": "Quem é, empresa e o que está oferecendo"}},
+            "required": ["resumo"],
+        },
+    },
+    {
         "name": "avisar_equipe",
         "description": (
             "Manda um aviso para a equipe SEM pausar o atendimento (ex.: preço que não está na tabela, "
@@ -195,6 +209,8 @@ async def executar(nome: str, entrada: dict, telefone: str) -> str:
     contato = db.obter_contato(telefone)
     if nome == "atualizar_ficha":
         return _atualizar_ficha(contato, entrada)
+    if nome == "marcar_fornecedor":
+        return _fornecedor(contato, entrada)
     if nome == "ver_horarios":
         return await _ver_horarios(entrada)
     if nome == "agendar_avaliacao":
@@ -399,6 +415,26 @@ async def _cancelar_evento_google(ag: dict):
             await google_agenda.cancelar_evento(ag["google_evento_id"])
         except Exception:
             db.criar_aviso(ag["telefone"], "google_agenda", "Não consegui apagar o evento cancelado no Google Agenda.")
+
+
+def _fornecedor(contato: dict, entrada: dict) -> str:
+    tel = contato["telefone"]
+    ficha = {**contato["ficha"], "resumo_conversa": f"Fornecedor: {entrada.get('resumo', '')}"}
+    db.atualizar_contato(tel, status="fornecedor", ficha=ficha)
+    # Só no painel e no relatório diário: fornecedor não merece aviso no WhatsApp da equipe.
+    db.criar_aviso(tel, "fornecedor", f"Fornecedor: {_rotulo_contato(contato)}\n{entrada.get('resumo', '')}\n"
+                   "A Aurora respondeu uma vez e não responde mais. Responda pelo WhatsApp Business se interessar.")
+    portfolio = ""
+    if midia.apresentacao() and not ficha.get("apresentacao_enviada"):
+        ficha["apresentacao_enviada"] = True
+        db.atualizar_contato(tel, ficha=ficha)
+        anexos_pendentes.setdefault(tel, []).append("apresentacao")
+        portfolio = " O PDF do nosso portfólio vai logo depois da sua mensagem: diga que está mandando."
+    return ("Marcado como fornecedor. Escreva agora UMA mensagem curta e educada, sem pergunta no final: diga que "
+            "recebeu e vai repassar para a equipe responsável, e que, caso tenha interesse ou queira presentear "
+            "alguém, a ORYA é uma clínica de estética avançada (cite em poucas palavras harmonização facial, botox, "
+            "preenchimento, bioestimulador, limpeza de pele e tratamentos corporais)." + portfolio +
+            " Depois disso você não responde mais este contato.")
 
 
 def _apresentacao(contato: dict) -> str:

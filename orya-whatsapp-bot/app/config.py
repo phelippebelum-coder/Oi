@@ -19,6 +19,8 @@ def _lista(nome: str) -> list[str]:
 # Claude
 CLAUDE_MODEL = _env("CLAUDE_MODEL", "claude-opus-5-5")
 CLAUDE_EFFORT = _env("CLAUDE_EFFORT", "medium")  # low | medium | high
+# Modelo barato que só confere se um fornecedor passou a querer um serviço da clínica.
+CLAUDE_MODELO_TRIAGEM = _env("CLAUDE_MODELO_TRIAGEM", "claude-haiku-5-5")
 
 # WhatsApp Cloud API (Meta)
 WHATSAPP_TOKEN = _env("WHATSAPP_TOKEN")
