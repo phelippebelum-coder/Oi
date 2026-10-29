@@ -14,6 +14,23 @@ log = logging.getLogger("orya.cerebro")
 MAX_RODADAS = 6
 MSG_FALHA = "Oi! Tive uma instabilidade aqui agora, mas já chamei alguém da equipe pra continuar com você 🤍"
 
+# Sinais de anotação interna (resumo, ficha, falar da cliente em 3ª pessoa) que nunca podem chegar ao WhatsApp dela.
+_FERRAMENTAS = ("atualizar_ficha|ver_horarios|agendar_avaliacao|remarcar_ou_cancelar|solicitar_ligacao|"
+                "transferir_para_humano|avisar_equipe|enviar_antes_depois|enviar_apresentacao")
+_VAZAMENTO = [re.compile(p, re.IGNORECASE | re.MULTILINE) for p in (
+    r"\b(?:a|da|na|pela|pra|para a|com a|à)\s+(?:cliente|lead)\b",
+    r"\bela\s+(?:pediu|perguntou|entrou em contato|não respondeu|parou de responder|sumiu)\b",
+    r"^\W*(?:resumo|motivo|status|temperatura|etapa|interesse|queixa|origem|triagem|obje[cç][aã]o|"
+    r"pr[oó]ximo passo|observa[cç][aã]o|nota)\W*:",
+    r"follow-?up|contexto interno|notas? internas?|anota[cç](?:ão|ões) internas?|\bficha\b",
+    rf"\b(?:{_FERRAMENTAS})\b",
+)]
+AVISO_VAZAMENTO = (
+    "[Contexto interno, não mostre à cliente]\nSua última resposta NÃO foi enviada: ela tinha anotação interna "
+    "(resumo, ficha ou comentário sobre a cliente em terceira pessoa). Escreva de novo só a mensagem para ela, "
+    "falando com ela (você), sem recontar a conversa nem dizer o que ela fez ou pediu."
+)
+
 _cliente: anthropic.AsyncAnthropic | None = None
 
 
@@ -118,6 +135,10 @@ async def _chamar(mensagens: list[dict]):
     )
 
 
+def parece_anotacao_interna(texto: str) -> bool:
+    return any(p.search(texto) for p in _VAZAMENTO)
+
+
 def dividir_baloes(texto: str, maximo: int = 3) -> list[str]:
     texto = re.sub(r"\s*—\s*", ", ", texto).strip()
     partes = [p.strip() for p in re.split(r"\n\s*\n", texto) if p.strip()]
@@ -126,15 +147,8 @@ def dividir_baloes(texto: str, maximo: int = 3) -> list[str]:
     return partes
 
 
-async def responder(telefone: str, conteudo_cliente: list[dict], nota: str | None = None) -> list[str]:
-    """Processa as novas mensagens da cliente e devolve os balões a enviar.
-
-    O histórico é só acrescentado (nunca editado), como pede o preserved thinking.
-    """
-    contato = db.obter_contato(telefone)
-    db.adicionar_historico(telefone, "user", conteudo_cliente)
-    db.adicionar_historico(telefone, "system", contexto_do_turno(contato, nota))
-
+async def _gerar(telefone: str) -> list[str] | None:
+    """Roda o Claude com as ferramentas até ele terminar. None = falhou (a equipe já foi chamada)."""
     textos: list[str] = []
     for _ in range(MAX_RODADAS):
         try:
@@ -146,7 +160,7 @@ async def responder(telefone: str, conteudo_cliente: list[dict], nota: str | Non
                 {"motivo": "falha técnica no bot", "urgente": False, "resumo": "O bot não conseguiu responder."},
                 telefone,
             )
-            return [MSG_FALHA]
+            return None
 
         db.adicionar_historico(telefone, "assistant", _blocos(resp.content))
 
@@ -157,7 +171,7 @@ async def responder(telefone: str, conteudo_cliente: list[dict], nota: str | Non
                 {"motivo": "o assistente não pôde responder", "urgente": False, "resumo": "Revisar a conversa."},
                 telefone,
             )
-            return [MSG_FALHA]
+            return None
 
         textos += [b.text for b in resp.content if b.type == "text" and b.text.strip()]
         usos = [b for b in resp.content if b.type == "tool_use"]
@@ -174,8 +188,35 @@ async def responder(telefone: str, conteudo_cliente: list[dict], nota: str | Non
                 resultados.append({"type": "tool_result", "tool_use_id": uso.id, "content": f"Erro: {e}",
                                    "is_error": True})
         db.adicionar_historico(telefone, "user", resultados)
+    return textos
 
+
+async def responder(telefone: str, conteudo_cliente: list[dict], nota: str | None = None) -> list[str]:
+    """Processa as novas mensagens da cliente e devolve os balões a enviar.
+
+    O histórico é só acrescentado (nunca editado), como pede o preserved thinking.
+    """
+    contato = db.obter_contato(telefone)
+    db.adicionar_historico(telefone, "user", conteudo_cliente)
+    db.adicionar_historico(telefone, "system", contexto_do_turno(contato, nota))
+
+    textos = await _gerar(telefone)
+    if textos is None:
+        return [MSG_FALHA]
     baloes = dividir_baloes("\n\n".join(textos))
+
+    if bloqueados := [b for b in baloes if parece_anotacao_interna(b)]:
+        # Anotação interna na resposta: nada sai, e o Claude reescreve uma vez só a mensagem para ela.
+        log.warning("Resposta com anotação interna bloqueada para %s: %r", telefone, bloqueados)
+        db.criar_aviso(telefone, "mensagem_bloqueada",
+                       "A Aurora tentou mandar uma anotação interna para a cliente e foi bloqueada (não saiu): "
+                       + " | ".join(bloqueados)[:900])
+        db.adicionar_historico(telefone, "system", AVISO_VAZAMENTO)
+        textos = await _gerar(telefone)
+        if textos is None:
+            return [MSG_FALHA]
+        baloes = [b for b in dividir_baloes("\n\n".join(textos)) if not parece_anotacao_interna(b)]
+
     atualizacao = {"ultima_msg_bot_em": db.agora_iso()}
     if db.obter_contato(telefone)["status"] == "novo":
         atualizacao["status"] = "em_conversa"

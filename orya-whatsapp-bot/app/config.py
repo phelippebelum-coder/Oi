@@ -73,10 +73,14 @@ LEMBRETES_ATIVOS = _env("LEMBRETES_ATIVOS", "1") == "1"
 
 # Follow-up de quem parou de responder: dias sem resposta para cada mensagem.
 # Depois da última etapa, repete a cada FOLLOWUP_MENSAL_DIAS (mensagem mensal com convite pro grupo VIP).
+# O follow-up do dia N sai às FOLLOWUP_HORA do N-ésimo dia depois da última mensagem dela (contato às 4h → 10h
+# do dia seguinte), sempre em horário comercial (8h às 18h) e, sem FOLLOWUP_DOMINGO=1, nunca no domingo.
 FOLLOWUP_ATIVO = _env("FOLLOWUP_ATIVO", "1") == "1"
 FOLLOWUP_DIAS = [float(x) for x in _lista("FOLLOWUP_DIAS") or ["1", "3", "7", "15", "30"]]
 FOLLOWUP_MENSAL_DIAS = float(_env("FOLLOWUP_MENSAL_DIAS", "30"))
-FOLLOWUP_HORARIO = (int(_env("FOLLOWUP_HORA_INICIO", "9")), int(_env("FOLLOWUP_HORA_FIM", "20")))
+FOLLOWUP_HORA = int(_env("FOLLOWUP_HORA", "10"))
+FOLLOWUP_HORARIO = (max(8, int(_env("FOLLOWUP_HORA_INICIO", "8"))), min(18, int(_env("FOLLOWUP_HORA_FIM", "18"))))
+FOLLOWUP_DOMINGO = _env("FOLLOWUP_DOMINGO", "0") == "1"
 # Templates aprovados no Meta para cada etapa fora da janela de 24h (parâmetro {{1}} = primeiro nome).
 # Formato: "3:nome_template_d3,7:nome_template_d7,15:...,30:...,mensal:nome_template_mensal"
 FOLLOWUP_TEMPLATES = dict(x.split(":", 1) for x in _lista("FOLLOWUP_TEMPLATES") if ":" in x)

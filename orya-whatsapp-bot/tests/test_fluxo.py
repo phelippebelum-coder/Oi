@@ -225,26 +225,56 @@ def test_prompt_sem_marcadores():
     assert "{{" not in p and "Tabela de preços" in p
 
 
+def _segunda_4h_no_passado():
+    """Uma segunda-feira às 4h, uns 90 dias atrás (antes da última mensagem do bot)."""
+    d = (db.agora() - timedelta(days=90)).astimezone(config.TZ)
+    d -= timedelta(days=d.weekday())
+    return d.replace(hour=4, minute=0, second=0, microsecond=0)
+
+
+def test_momento_do_followup_e_as_10h():
+    seg = _segunda_4h_no_passado()
+    um_dia = timedelta(days=1)
+    # contato às 4h da manhã: follow-up no dia seguinte às 10h
+    assert rotinas.momento_followup(seg, um_dia) == (seg + um_dia).replace(hour=10)
+    # contato às 17h: dia seguinte às 10h (um pouco antes das 24h)
+    assert rotinas.momento_followup(seg.replace(hour=17), um_dia) == (seg + um_dia).replace(hour=10)
+    # D+1 que cairia no domingo passa para segunda
+    sab = seg + timedelta(days=5)
+    assert rotinas.momento_followup(sab, um_dia) == (sab + timedelta(days=2)).replace(hour=10)
+    # D+3 a partir de segunda: quinta às 10h
+    assert rotinas.momento_followup(seg, timedelta(days=3)) == (seg + timedelta(days=3)).replace(hour=10)
+    # só em horário comercial e nunca no domingo
+    assert not rotinas.horario_de_followup(seg.replace(hour=7, minute=59))
+    assert rotinas.horario_de_followup(seg.replace(hour=8))
+    assert rotinas.horario_de_followup(seg.replace(hour=17, minute=59))
+    assert not rotinas.horario_de_followup(seg.replace(hour=18))
+    assert not rotinas.horario_de_followup((seg + timedelta(days=6)).replace(hour=10))
+
+
 def test_cadencia_de_followup_e_resgate(monkeypatch):
     falso = ClaudeFalso([([texto("Oi!")], "end_turn")] + [([texto(f"follow {i}")], "end_turn") for i in range(7)]
                         + [([texto("Que bom te ver de novo!")], "end_turn")])
     monkeypatch.setattr(cerebro, "_chamar", falso)
-    monkeypatch.setattr(config, "FOLLOWUP_HORARIO", (0, 24))
+    monkeypatch.setattr(config, "FOLLOWUP_DOMINGO", True)  # a cadência longa pode cair em qualquer dia
     tel = "teste-cad"
 
     async def rodar():
         await processador.receber_mensagem({"de": tel, "texto": "oi", "msg_tipo": "text"}, "teste")
         await esperar()
         enviados = []
+        ultima = _segunda_4h_no_passado()
         for _ in range(7):
             c = db.obter_contato(tel)
-            chave, limiar = rotinas.etapa_followup(c["followups_enviados"])
-            # um minuto antes do prazo: não envia
-            db.atualizar_contato(tel, ultima_msg_cliente_em=(db.agora() - limiar + timedelta(minutes=1)).isoformat())
-            await rotinas.followups()
+            chave, espera = rotinas.etapa_followup(c["followups_enviados"])
+            db.atualizar_contato(tel, ultima_msg_cliente_em=ultima.isoformat())
+            prazo = rotinas.momento_followup(ultima, espera)
+            assert prazo.hour == 10
+            # um minuto antes das 10h do dia da etapa: não envia
+            await rotinas.followups(prazo - timedelta(minutes=1))
             assert db.obter_contato(tel)["followups_enviados"] == c["followups_enviados"]
-            db.atualizar_contato(tel, ultima_msg_cliente_em=(db.agora() - limiar - timedelta(minutes=1)).isoformat())
-            await rotinas.followups()
+            await rotinas.followups(prazo)
+            assert db.obter_contato(tel)["followups_enviados"] == c["followups_enviados"] + 1
             enviados.append(chave)
         assert enviados == ["1", "3", "7", "15", "30", "mensal", "mensal"]
         assert db.obter_contato(tel)["temperatura"] == "fria"
@@ -259,7 +289,29 @@ def test_cadencia_de_followup_e_resgate(monkeypatch):
     ultima = falso.chamadas[-1]
     assert "VOLTOU a responder" in ultima[-1]["content"]
     nota_d3 = falso.chamadas[2][-1]["content"]
-    assert "3 dias" in nota_d3
+    assert "3 dias" in nota_d3 and "nunca SOBRE ela" in nota_d3
+
+
+def test_followup_fora_do_horario_comercial_nao_sai(monkeypatch):
+    falso = ClaudeFalso([([texto("Oi!")], "end_turn"), ([texto("follow")], "end_turn")])
+    monkeypatch.setattr(cerebro, "_chamar", falso)
+    tel = "teste-hora"
+
+    async def rodar():
+        await processador.receber_mensagem({"de": tel, "texto": "oi", "msg_tipo": "text"}, "teste")
+        await esperar()
+        ultima = _segunda_4h_no_passado()
+        db.atualizar_contato(tel, ultima_msg_cliente_em=ultima.isoformat())
+        terca = ultima + timedelta(days=1)
+        for hora in (5, 7, 9):  # madrugada e antes das 10h: espera
+            await rotinas.followups(terca.replace(hour=hora))
+        assert db.obter_contato(tel)["followups_enviados"] == 0
+        await rotinas.followups(terca.replace(hour=19))  # passou das 18h: espera o dia seguinte
+        assert db.obter_contato(tel)["followups_enviados"] == 0
+        await rotinas.followups(terca.replace(hour=10))
+        assert db.obter_contato(tel)["followups_enviados"] == 1
+
+    asyncio.run(rodar())
 
 
 def test_followup_fora_da_janela_usa_template(monkeypatch):
@@ -270,24 +322,43 @@ def test_followup_fora_da_janela_usa_template(monkeypatch):
 
     monkeypatch.setattr(config, "WHATSAPP_TOKEN", "x")
     monkeypatch.setattr(config, "WHATSAPP_PHONE_NUMBER_ID", "1")
-    monkeypatch.setattr(config, "FOLLOWUP_HORARIO", (0, 24))
     monkeypatch.setattr(config, "FOLLOWUP_TEMPLATES", {"3": "orya_d3", "mensal": "orya_mensal"})
     monkeypatch.setattr(config, "GRUPO_VIP_LINK", "https://chat.whatsapp.com/xyz")
     monkeypatch.setattr(whatsapp, "enviar_template", template)
     tel = "5511912345678"
+    seg = _segunda_4h_no_passado()
     db.garantir_contato(tel)
     db.atualizar_contato(tel, status="em_conversa", followups_enviados=1, ficha={"nome": "Ana"},
-                         ultima_msg_cliente_em=(db.agora() - timedelta(days=3, minutes=1)).isoformat(),
-                         ultima_msg_bot_em=(db.agora() - timedelta(days=2)).isoformat())
-    asyncio.run(rotinas.followups())
+                         ultima_msg_cliente_em=seg.isoformat(), ultima_msg_bot_em=db.agora_iso())
+    asyncio.run(rotinas.followups((seg + timedelta(days=3)).replace(hour=10)))
     assert enviados == [(tel, "orya_d3", ["Ana"])]
     # etapa sem template: não envia e avisa no painel
-    db.atualizar_contato(tel, ultima_msg_cliente_em=(db.agora() - timedelta(days=8)).isoformat())
-    asyncio.run(rotinas.followups())
+    asyncio.run(rotinas.followups((seg + timedelta(days=7)).replace(hour=10)))
     assert len(enviados) == 1 and db.listar_avisos()[0]["tipo"] == "followup_pendente"
-    db.atualizar_contato(tel, followups_enviados=5, ultima_msg_cliente_em=(db.agora() - timedelta(days=61)).isoformat())
-    asyncio.run(rotinas.followups())
+    db.atualizar_contato(tel, followups_enviados=5)
+    asyncio.run(rotinas.followups((seg + timedelta(days=60)).replace(hour=10)))
     assert enviados[-1] == (tel, "orya_mensal", ["Ana", "https://chat.whatsapp.com/xyz"])
+
+
+def test_anotacao_interna_nao_vai_para_a_cliente(monkeypatch):
+    vazou = "Resumo: a cliente entrou em contato pelo anúncio e pediu direto o valor do botox."
+    falso = ClaudeFalso([
+        ([texto("Oi, Bia! Lembrei de você aqui 🤍\n\n" + vazou)], "end_turn"),
+        ([texto("Oi, Bia! Lembrei de você aqui 🤍 Ainda tá pensando no botox?")], "end_turn"),
+    ])
+    monkeypatch.setattr(cerebro, "_chamar", falso)
+    tel = "teste-vazamento"
+    db.garantir_contato(tel, "teste")
+    baloes = asyncio.run(cerebro.responder(tel, [{"type": "text", "text": "oi"}]))
+    assert baloes == ["Oi, Bia! Lembrei de você aqui 🤍 Ainda tá pensando no botox?"]
+    assert "NÃO foi enviada" in falso.chamadas[1][-1]["content"]
+    assert db.listar_avisos()[0]["tipo"] == "mensagem_bloqueada"
+    for ok in ("Oi, Carla! Que bom que você chamou 🤍", "olha esse resultado de uma paciente da Dra., bem natural, né?",
+               "vou deixar anotado pra Dra. avaliar com calma", "A jornada tem 5 etapas, da avaliação ao retorno."):
+        assert not cerebro.parece_anotacao_interna(ok)
+    for ruim in ("A cliente não respondeu desde ontem.", "Motivo: quer saber o valor", "ela pediu o preço direto",
+                 "Vou usar atualizar_ficha agora", "Temperatura: morna"):
+        assert cerebro.parece_anotacao_interna(ruim)
 
 
 def test_agendado_nao_recebe_followup(monkeypatch):

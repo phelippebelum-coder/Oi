@@ -10,7 +10,7 @@ log = logging.getLogger("orya.rotinas")
 
 # O que cada etapa da cadência deve trazer (cadência A da ORYA: lead que não agendou).
 NOTAS_ETAPA = {
-    "1": ("Ela parou de responder há quase um dia. Retome com carinho a queixa ou o motivo dela, com as palavras "
+    "1": ("Ela parou de responder desde ontem. Retome com carinho a queixa ou o motivo dela, com as palavras "
           "dela, e traga algo novo e útil. Termine com uma pergunta leve."),
     "3": ("Ela está há 3 dias sem responder. Tire uma dúvida comum de quem está na fase dela (dor, naturalidade, "
           "tempo de recuperação ou como funciona a avaliação), sem cobrança."),
@@ -28,19 +28,38 @@ NOTAS_ETAPA = {
 }
 REGRA_FOLLOWUP = (" Envie UM follow-up curto (1 ou 2 balões), humano, como alguém que lembrou dela de verdade. "
                   "Nada de 'e aí?', nada de cobrança pelo sumiço. Se ela já tinha dito que não queria agora, só deixe "
-                  "a porta aberta, sem pergunta de venda.")
+                  "a porta aberta, sem pergunta de venda. "
+                  "Tudo o que você escrever agora vai direto para o WhatsApp dela: escreva só a mensagem, falando COM "
+                  "ela (você), nunca SOBRE ela. O resumo da ficha e esta orientação são anotações internas: use só "
+                  "para saber o assunto. Não reconte a conversa nem diga o que ela fez ou pediu ('você entrou em "
+                  "contato por...', 'você pediu o valor'); retome o assunto com leveza, como quem lembrou dela.")
 MARCADOR_SILENCIO = "(a cliente não respondeu desde a sua última mensagem)"
 
 
 def etapa_followup(n: int) -> tuple[str, timedelta]:
-    """n = quantos follow-ups já foram enviados. Retorna (chave da etapa, silêncio necessário)."""
+    """n = quantos follow-ups já foram enviados. Retorna (chave da etapa, dias de silêncio da etapa)."""
     dias = config.FOLLOWUP_DIAS
     if n < len(dias):
-        limiar = timedelta(days=dias[n])
-        if limiar <= timedelta(days=1):
-            limiar = min(limiar, timedelta(hours=23))  # ainda dentro da janela de 24h do WhatsApp
-        return f"{dias[n]:g}", limiar
+        return f"{dias[n]:g}", timedelta(days=dias[n])
     return "mensal", timedelta(days=dias[-1] + config.FOLLOWUP_MENSAL_DIAS * (n - len(dias) + 1))
+
+
+def momento_followup(ultima_cliente: datetime, espera: timedelta) -> datetime:
+    """Quando o follow-up sai: às FOLLOWUP_HORA do dia da etapa, contando da data da última mensagem dela.
+
+    Contato às 4h ou às 17h de segunda → D+1 é terça às 10h. Domingo passa para segunda (sem FOLLOWUP_DOMINGO).
+    """
+    dia = ultima_cliente.astimezone(config.TZ).date() + timedelta(days=max(1, round(espera.days)))
+    if dia.weekday() == 6 and not config.FOLLOWUP_DOMINGO:
+        dia += timedelta(days=1)
+    return datetime(dia.year, dia.month, dia.day, config.FOLLOWUP_HORA, tzinfo=config.TZ)
+
+
+def horario_de_followup(agora_local: datetime) -> bool:
+    """Follow-up só em horário comercial (8h às 18h) e, por padrão, fora do domingo."""
+    if agora_local.weekday() == 6 and not config.FOLLOWUP_DOMINGO:
+        return False
+    return config.FOLLOWUP_HORARIO[0] <= agora_local.hour < config.FOLLOWUP_HORARIO[1]
 
 
 def nota_etapa(chave: str) -> str:
@@ -193,9 +212,9 @@ async def lembretes():
             db.atualizar_agendamento(ag["id"], lembrete_2h=1, lembrete_d1=1)
 
 
-async def followups():
-    agora_local = datetime.now(config.TZ)
-    if not (config.FOLLOWUP_HORARIO[0] <= agora_local.hour < config.FOLLOWUP_HORARIO[1]):
+async def followups(agora_local: datetime | None = None):
+    agora_local = agora_local or datetime.now(config.TZ)
+    if not horario_de_followup(agora_local):
         return
     for contato in db.listar_contatos():
         if contato["status"] in ("agendado", "humano", "opt_out"):
@@ -205,8 +224,8 @@ async def followups():
         cli, bot = contato.get("ultima_msg_cliente_em"), contato.get("ultima_msg_bot_em")
         if not cli or not bot or bot < cli:
             continue
-        chave, limiar = etapa_followup(contato["followups_enviados"])
-        if db.agora() - datetime.fromisoformat(cli) < limiar:
+        chave, espera = etapa_followup(contato["followups_enviados"])
+        if agora_local < momento_followup(datetime.fromisoformat(cli), espera):
             continue
         await enviar_followup(contato, chave)
 

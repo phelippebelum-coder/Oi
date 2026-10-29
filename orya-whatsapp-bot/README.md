@@ -10,7 +10,7 @@ O bot faz o pré-atendimento da ORYA 24 horas por dia no WhatsApp oficial (Cloud
 - **Avisa a equipe** no WhatsApp e no painel quando agenda, quando precisa de uma pessoa ou quando falta preço na tabela.
 - **Sai de cena sozinho** quando alguém da equipe responde pelo app WhatsApp Business (modo coexistência) e volta depois de 12h, ou quando vocês mandarem pelo painel.
 - **Lembretes** D-1 e 2h antes da avaliação.
-- **Follow-up em cadência** para quem parou de responder: 1, 3, 7, 15 e 30 dias, e depois uma mensagem por mês com convite para o grupo VIP. Se a lead responder, a cadência zera e o bot recomeça a conversa (resgate).
+- **Follow-up em cadência** para quem parou de responder: 1, 3, 7, 15 e 30 dias, sempre às 10h do dia da etapa (contato às 4h da manhã → follow-up às 10h do dia seguinte), só entre 8h e 18h e nunca no domingo, e depois uma mensagem por mês com convite para o grupo VIP. Se a lead responder, a cadência zera e o bot recomeça a conversa (resgate).
 - **Relatórios por e-mail**: aviso na hora quando agenda, pede ligação ou passa para a equipe, e um relatório diário (20h) com todos os leads, categoria, e-mail e resumo da conversa.
 - **Pedido de ligação**: quando a cliente quer que liguem ou precisa de atenção maior, o Phelippe recebe no WhatsApp e no e-mail o número pra ligar.
 - **Cadastro para e-mail marketing**: pede nome, sobrenome e e-mail só no fim, na fase de agendamento (sem insistir). O painel exporta a lista em CSV.
