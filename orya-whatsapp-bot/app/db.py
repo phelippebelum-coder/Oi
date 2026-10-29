@@ -108,6 +108,9 @@ def iniciar():
                 con.execute(f"ALTER TABLE agendamentos ADD COLUMN {coluna} {tipo}")
         if "unidade" not in colunas:
             con.execute("ALTER TABLE agendamentos ADD COLUMN unidade TEXT NOT NULL DEFAULT 'jardim_sao_paulo'")
+        # Mensagens que ainda vão ser respondidas (espera de 1min30 ou madrugada): sobrevivem a reinício do servidor.
+        if "pendente" not in {l["name"] for l in con.execute("PRAGMA table_info(contatos)")}:
+            con.execute("ALTER TABLE contatos ADD COLUMN pendente TEXT")
 
 
 # ---------- contatos ----------
@@ -140,6 +143,8 @@ def atualizar_contato(telefone: str, **campos):
         campos["ficha"] = json.dumps(campos["ficha"], ensure_ascii=False)
     if "referral" in campos and isinstance(campos["referral"], dict):
         campos["referral"] = json.dumps(campos["referral"], ensure_ascii=False)
+    if "pendente" in campos and isinstance(campos["pendente"], dict):
+        campos["pendente"] = json.dumps(campos["pendente"], ensure_ascii=False)
     campos["atualizado_em"] = agora_iso()
     sets = ", ".join(f"{k} = ?" for k in campos)
     with conectar() as con:
@@ -163,6 +168,7 @@ def _contato(linha: sqlite3.Row) -> dict:
     c = dict(linha)
     c["ficha"] = json.loads(c.get("ficha") or "{}")
     c["referral"] = json.loads(c["referral"]) if c.get("referral") else None
+    c["pendente"] = json.loads(c["pendente"]) if c.get("pendente") else None
     return c
 
 

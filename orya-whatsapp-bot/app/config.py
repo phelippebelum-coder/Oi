@@ -67,7 +67,11 @@ LEGENDA_ANTES_DEPOIS = _env(
 PAINEL_SENHA = _env("PAINEL_SENHA")
 
 # Comportamento
-AGRUPAR_SEGUNDOS = float(_env("AGRUPAR_SEGUNDOS", "7"))  # espera a cliente terminar de digitar
+AGRUPAR_SEGUNDOS = float(_env("AGRUPAR_SEGUNDOS", "7"))  # página de teste: espera a cliente terminar de digitar
+# WhatsApp: espera 1min30 sem mensagem nova antes de responder (cada mensagem dela zera a contagem).
+ESPERA_CLIENTE_SEGUNDOS = float(_env("ESPERA_CLIENTE_SEGUNDOS", "90"))
+# Da meia-noite até este horário a Aurora não responde; o que chegar de madrugada é respondido a partir dele.
+RESPONDER_A_PARTIR_DE = tuple(int(x) for x in _env("RESPONDER_A_PARTIR_DE", "06:30").split(":"))
 PAUSA_HUMANO_HORAS = float(_env("PAUSA_HUMANO_HORAS", "12"))  # bot fica quieto após a equipe responder
 LEMBRETES_ATIVOS = _env("LEMBRETES_ATIVOS", "1") == "1"
 

@@ -1,10 +1,10 @@
 # ORYA · Atendimento automático no WhatsApp (Claude)
 
-O bot faz o pré-atendimento da ORYA 24 horas por dia no WhatsApp oficial (Cloud API da Meta). Ele segue o roteiro de SDR da clínica: acolhe a lead, descobre a queixa, faz a triagem de saúde, passa o preço só quando faz sentido, agenda a avaliação em horário livre e entrega para a equipe um resumo de cada cliente.
+O bot faz o pré-atendimento da ORYA todos os dias, das 6h30 à meia-noite, no WhatsApp oficial (Cloud API da Meta). Ele segue o roteiro de SDR da clínica: acolhe a lead, descobre a queixa, faz a triagem de saúde, passa o preço só quando faz sentido, agenda a avaliação em horário livre e entrega para a equipe um resumo de cada cliente.
 
 ## O que ele faz
 
-- **Responde 24h** com tom humanizado: balões curtos, uma pergunta por vez, usa o nome e as palavras da cliente.
+- **Responde como gente**: espera 1min30 sem mensagem nova para a cliente terminar de escrever (cada mensagem zera a contagem) e não responde de madrugada (o que chega entre meia-noite e 6h30 é respondido às 6h30; `ESPERA_CLIENTE_SEGUNDOS` e `RESPONDER_A_PARTIR_DE`). Tom humanizado: balões curtos, uma pergunta por vez, usa o nome e as palavras da cliente.
 - **Categoriza cada contato** numa ficha: lead novo ou cliente de retorno, status, temperatura (quente/morna/fria), etapa, interesses, queixa, triagem, objeções, origem (anúncio).
 - **Agenda a avaliação** consultando a agenda interna, sempre oferecendo duas opções reais. Também remarca e cancela.
 - **Avisa a equipe** no WhatsApp e no painel quando agenda, quando precisa de uma pessoa ou quando falta preço na tabela.

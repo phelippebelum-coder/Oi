@@ -20,9 +20,10 @@ def ambiente(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DATA_DIR", tmp_path)
     monkeypatch.setattr(config, "DB_PATH", tmp_path / "t.db")
     monkeypatch.setattr(config, "AGRUPAR_SEGUNDOS", 0.05)
+    monkeypatch.setattr(config, "ESPERA_CLIENTE_SEGUNDOS", 0.05)
+    monkeypatch.setattr(config, "RESPONDER_A_PARTIR_DE", (0, 0))  # testes rodam a qualquer hora
     monkeypatch.setattr(config, "WHATSAPP_TOKEN", "")
     db.iniciar()
-    processador._pendentes.clear()
     processador._timers.clear()
     processador._travas.clear()
 
@@ -620,3 +621,82 @@ def test_prazo_vencido_so_avisa_por_padrao():
 def test_aurora_no_prompt():
     p = cerebro.prompt_sistema()
     assert "Aurora, do atendimento da ORYA" in p and "sou a Aurora" in p
+
+
+def test_espera_1min30_e_madrugada():
+    from datetime import datetime
+    tz = config.TZ
+    tarde = datetime(2026, 10, 29, 15, 0, tzinfo=tz)
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(config, "ESPERA_CLIENTE_SEGUNDOS", 90)
+        mp.setattr(config, "RESPONDER_A_PARTIR_DE", (6, 30))
+        assert processador.momento_de_responder(tarde, "whatsapp") == tarde + timedelta(seconds=90)
+        # de madrugada: só às 6h30
+        for h, m in ((0, 0), (3, 15), (6, 0), (6, 28)):
+            assert processador.momento_de_responder(datetime(2026, 10, 29, h, m, tzinfo=tz), "whatsapp") == \
+                datetime(2026, 10, 29, 6, 30, tzinfo=tz)
+        # 23h59: a espera passaria da meia-noite, então fica para as 6h30 do dia seguinte
+        assert processador.momento_de_responder(datetime(2026, 10, 29, 23, 59, tzinfo=tz), "whatsapp") == \
+            datetime(2026, 10, 30, 6, 30, tzinfo=tz)
+        assert processador.momento_de_responder(datetime(2026, 10, 29, 6, 30, tzinfo=tz), "whatsapp") == \
+            datetime(2026, 10, 29, 6, 31, 30, tzinfo=tz)
+        # página de teste não espera nem respeita a madrugada
+        assert processador.momento_de_responder(datetime(2026, 10, 29, 3, 0, tzinfo=tz), "teste") < \
+            datetime(2026, 10, 29, 3, 1, tzinfo=tz)
+
+
+def test_whatsapp_junta_mensagens_e_responde_uma_vez(monkeypatch):
+    falso = ClaudeFalso([([texto("Oi, Ju! Me conta mais 🤍")], "end_turn")])
+    monkeypatch.setattr(cerebro, "_chamar", falso)
+    tel = "5511955554444"
+
+    async def rodar():
+        for i, t in enumerate(("oi", "vi o anúncio", "quanto é o botox?")):
+            await processador.receber_mensagem({"de": tel, "texto": t, "msg_tipo": "text", "id": f"w{i}"})
+        assert db.obter_contato(tel)["pendente"]["blocos"][-1]["text"] == "quanto é o botox?"
+        await esperar()
+
+    asyncio.run(rodar())
+    assert len(falso.chamadas) == 1
+    textos = [b["text"] for m in falso.chamadas[0] if m["role"] == "user" for b in m["content"]]
+    assert textos == ["oi", "vi o anúncio", "quanto é o botox?"]
+    assert db.obter_contato(tel)["pendente"] is None
+
+
+def test_mensagem_da_madrugada_e_respondida_depois_mesmo_com_reinicio(monkeypatch):
+    falso = ClaudeFalso([([texto("Bom dia, Ana! 🤍")], "end_turn")])
+    monkeypatch.setattr(cerebro, "_chamar", falso)
+    tel = "5511944443333"
+    db.garantir_contato(tel)
+    futuro = db.agora() + timedelta(hours=3)
+    db.atualizar_contato(tel, pendente={"blocos": [{"type": "text", "text": "oi, tô sem sono kkk"}],
+                                         "canal": "whatsapp", "responder_em": futuro.isoformat()})
+
+    async def rodar():
+        await processador.retomar_pendentes()  # ainda não é hora: só agenda
+        await asyncio.sleep(0.05)
+        assert not falso.chamadas and tel in processador._timers
+        processador._timers.pop(tel).cancel()  # simula o servidor reiniciando
+        db.atualizar_contato(tel, pendente={**db.obter_contato(tel)["pendente"],
+                                             "responder_em": (db.agora() - timedelta(minutes=1)).isoformat()})
+        await processador.retomar_pendentes()
+        await esperar()
+
+    asyncio.run(rodar())
+    assert len(falso.chamadas) == 1 and db.obter_contato(tel)["pendente"] is None
+
+
+def test_equipe_responde_durante_a_espera(monkeypatch):
+    falso = ClaudeFalso([])
+    monkeypatch.setattr(cerebro, "_chamar", falso)
+    monkeypatch.setattr(config, "ESPERA_CLIENTE_SEGUNDOS", 5)
+    tel = "5511933332222"
+
+    async def rodar():
+        await processador.receber_mensagem({"de": tel, "texto": "oi", "msg_tipo": "text", "id": "x1"})
+        await processador.receber_eco({"para": tel, "texto": "Oi! Aqui é a Bruna", "msg_tipo": "text", "id": "e1"})
+        await asyncio.sleep(0.05)
+
+    asyncio.run(rodar())
+    assert not falso.chamadas and db.obter_contato(tel)["pendente"] is None
+    assert db.obter_historico(tel)[0] == {"role": "user", "content": [{"type": "text", "text": "oi"}]}

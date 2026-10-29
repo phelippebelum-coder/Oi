@@ -1,4 +1,9 @@
-"""Recebe as mensagens, espera a cliente terminar de digitar, chama o cérebro e envia a resposta."""
+"""Recebe as mensagens, espera a cliente terminar de mandar tudo, chama o cérebro e envia a resposta.
+
+No WhatsApp a Aurora espera 1min30 sem mensagem nova (cada mensagem zera a contagem) e não responde de madrugada:
+o que chega entre meia-noite e 6h30 é respondido às 6h30. As mensagens que aguardam resposta ficam no banco
+(`pendente`), então nada se perde se o servidor reiniciar no meio da espera.
+"""
 
 import asyncio
 import base64
@@ -9,11 +14,9 @@ from . import cerebro, config, db, ferramentas, midia, whatsapp
 
 log = logging.getLogger("orya.processador")
 
-_pendentes: dict[str, list[dict]] = {}
 _timers: dict[str, asyncio.Task] = {}
 _travas: dict[str, asyncio.Lock] = {}
 _ultimo_id: dict[str, str] = {}
-_notas: dict[str, str] = {}
 
 IMAGENS_SUPORTADAS = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 
@@ -25,6 +28,17 @@ def bot_pausado(contato: dict) -> bool:
     return bool(ate and datetime.fromisoformat(ate) > db.agora())
 
 
+def momento_de_responder(agora: datetime, canal: str) -> datetime:
+    """1min30 depois da última mensagem dela; se isso cair na madrugada, às 6h30."""
+    if canal != "whatsapp":
+        return agora + timedelta(seconds=config.AGRUPAR_SEGUNDOS)
+    alvo = agora + timedelta(seconds=config.ESPERA_CLIENTE_SEGUNDOS)
+    local = alvo.astimezone(config.TZ)
+    hora, minuto = config.RESPONDER_A_PARTIR_DE
+    abre = local.replace(hour=hora, minute=minuto, second=0, microsecond=0)
+    return abre if local < abre else alvo
+
+
 async def receber_mensagem(evento: dict, canal: str = "whatsapp"):
     """Chamado para cada mensagem da cliente (WhatsApp ou página de teste)."""
     if evento.get("id") and db.ja_processado(evento["id"]):
@@ -33,11 +47,12 @@ async def receber_mensagem(evento: dict, canal: str = "whatsapp"):
     contato = db.garantir_contato(tel, canal, evento.get("nome"))
     if evento.get("referral") and not contato.get("referral"):
         db.atualizar_contato(tel, referral=evento["referral"], origem="anuncio")
+    nota = None
     if contato["followups_enviados"] and contato.get("ultima_msg_cliente_em"):
         # Lead resgatada: voltou a responder depois dos follow-ups. A cadência recomeça do zero.
         dias = (db.agora() - datetime.fromisoformat(contato["ultima_msg_cliente_em"])).days
-        _notas[tel] = (f"A cliente VOLTOU a responder depois de {dias} dia(s) sem retorno e "
-                       f"{contato['followups_enviados']} follow-up(s). Siga 'Leads que voltaram a responder'.")
+        nota = (f"A cliente VOLTOU a responder depois de {dias} dia(s) sem retorno e "
+                f"{contato['followups_enviados']} follow-up(s). Siga 'Leads que voltaram a responder'.")
         if contato["temperatura"] == "fria":
             db.atualizar_contato(tel, temperatura="morna")
     db.atualizar_contato(tel, ultima_msg_cliente_em=db.agora_iso(), followups_enviados=0)
@@ -46,33 +61,76 @@ async def receber_mensagem(evento: dict, canal: str = "whatsapp"):
     texto_legivel = evento.get("texto") or f"[{evento.get('msg_tipo')}]"
     db.registrar_conversa(tel, "cliente", texto_legivel)
 
-    if bot_pausado(db.obter_contato(tel)):
+    contato = db.obter_contato(tel)
+    if bot_pausado(contato):
         # Equipe está atendendo: guarda no histórico para o bot ter contexto quando voltar.
         db.adicionar_historico(tel, "user", blocos)
         return
 
+    # Junta com o que ela já mandou e empurra a resposta para 1min30 depois desta mensagem.
+    pend = contato.get("pendente") or {"blocos": []}
+    pend["blocos"] = pend["blocos"] + blocos
+    pend["canal"] = canal
+    if nota:
+        pend["nota"] = nota
     if canal == "whatsapp" and evento.get("id"):
-        _ultimo_id[tel] = evento["id"]
-        asyncio.create_task(whatsapp.marcar_lida_digitando(evento["id"]))
+        pend["ultimo_id"] = evento["id"]
+    quando = momento_de_responder(db.agora(), canal)
+    pend["responder_em"] = quando.isoformat()
+    db.atualizar_contato(tel, pendente=pend)
+    _agendar(tel, quando)
 
-    _pendentes.setdefault(tel, []).extend(blocos)
+
+def _agendar(tel: str, quando: datetime):
     if t := _timers.get(tel):
         t.cancel()
-    _timers[tel] = asyncio.create_task(_processar_depois(tel, canal))
+    _timers[tel] = asyncio.create_task(_processar_depois(tel, quando))
 
 
-async def _processar_depois(tel: str, canal: str):
+async def _processar_depois(tel: str, quando: datetime):
     try:
-        await asyncio.sleep(config.AGRUPAR_SEGUNDOS)
+        await asyncio.sleep(max(0.0, (quando - db.agora()).total_seconds()))
     except asyncio.CancelledError:
         return
+    if _timers.get(tel) is asyncio.current_task():
+        _timers.pop(tel)
+    await processar_pendente(tel)
+
+
+async def processar_pendente(tel: str):
     trava = _travas.setdefault(tel, asyncio.Lock())
     async with trava:
-        blocos = _pendentes.pop(tel, [])
-        _timers.pop(tel, None)
-        if not blocos:
+        contato = db.obter_contato(tel)
+        pend = (contato or {}).get("pendente")
+        if not pend or not pend.get("blocos"):
             return
-        await responder_e_enviar(tel, canal, blocos, _notas.pop(tel, None))
+        if datetime.fromisoformat(pend["responder_em"]) > db.agora():
+            return  # ela mandou mensagem nova: a espera recomeçou
+        db.atualizar_contato(tel, pendente=None)
+        if bot_pausado(contato):
+            db.adicionar_historico(tel, "user", pend["blocos"])
+            return
+        canal = pend.get("canal", "whatsapp")
+        if canal == "whatsapp" and whatsapp.configurado() and pend.get("ultimo_id"):
+            # Só agora marca como lida e mostra "digitando...", como quem pegou o celular pra responder.
+            _ultimo_id[tel] = pend["ultimo_id"]
+            await whatsapp.marcar_lida_digitando(pend["ultimo_id"])
+        await responder_e_enviar(tel, canal, pend["blocos"], pend.get("nota"))
+
+
+async def retomar_pendentes():
+    """Rede de segurança (roda a cada minuto): responde o que ficou pendente sem timer, como após um reinício."""
+    agora = db.agora()
+    for c in db.listar_contatos():
+        pend = c.get("pendente")
+        tel = c["telefone"]
+        if not pend or tel in _timers or (tel in _travas and _travas[tel].locked()):
+            continue
+        quando = datetime.fromisoformat(pend["responder_em"])
+        if quando <= agora:
+            asyncio.create_task(processar_pendente(tel))
+        else:
+            _agendar(tel, quando)
 
 
 async def responder_e_enviar(tel: str, canal: str, blocos: list[dict], nota: str | None = None):
@@ -110,15 +168,18 @@ async def receber_eco(evento: dict):
     contato = db.garantir_contato(tel)
     texto = evento.get("texto") or f"[{evento.get('msg_tipo')}]"
     db.registrar_conversa(tel, "equipe", texto)
+    if t := _timers.pop(tel, None):
+        t.cancel()
+    if pend := contato.get("pendente"):
+        # A equipe respondeu antes da Aurora: as mensagens dela ficam só como contexto.
+        db.atualizar_contato(tel, pendente=None)
+        db.adicionar_historico(tel, "user", pend["blocos"])
     if db.obter_historico(tel):
         db.adicionar_historico(tel, "assistant", [{"type": "text", "text": f"(mensagem da equipe) {texto}"}])
     ate = db.agora() + timedelta(hours=config.PAUSA_HUMANO_HORAS)
     atual = contato.get("bot_pausado_ate")
     if not atual or datetime.fromisoformat(atual) < ate:
         db.atualizar_contato(tel, bot_pausado_ate=ate.isoformat())
-    if t := _timers.pop(tel, None):
-        t.cancel()
-    _pendentes.pop(tel, None)
 
 
 async def _converter(evento: dict, canal: str) -> list[dict]:

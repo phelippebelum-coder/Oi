@@ -70,6 +70,7 @@ def nota_etapa(chave: str) -> str:
 async def laco():
     while True:
         try:
+            await processador.retomar_pendentes()
             if config.LEMBRETES_ATIVOS:
                 await lembretes()
             await pagamentos()
