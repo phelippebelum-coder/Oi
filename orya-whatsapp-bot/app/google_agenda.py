@@ -116,3 +116,25 @@ async def cancelar_evento(evento_id: str):
         return
     await _requisicao("DELETE", f"/calendars/{_calendario()}/events/{evento_id}")
     limpar_cache()
+
+
+async def status() -> dict:
+    """Testa o acesso à agenda (usado no painel para conferir a integração)."""
+    if not configurado():
+        return {"ok": False, "motivo": "GOOGLE_CALENDAR_ID ou GOOGLE_SERVICE_ACCOUNT_JSON vazio no Render"}
+    try:
+        email = json.loads(config.GOOGLE_SERVICE_ACCOUNT_JSON).get("client_email")
+        agora = datetime.now(config.TZ)
+        resp = await _requisicao("POST", "/freeBusy", {
+            "timeMin": agora.isoformat(), "timeMax": (agora + timedelta(days=7)).isoformat(),
+            "timeZone": str(config.TZ), "items": [{"id": config.GOOGLE_CALENDAR_ID}],
+        })
+    except Exception as e:
+        return {"ok": False, "motivo": f"erro ao acessar o Google: {e}"}
+    agenda = resp.get("calendars", {}).get(config.GOOGLE_CALENDAR_ID, {})
+    if agenda.get("errors"):
+        return {"ok": False, "conta_de_servico": email, "motivo": (
+            "a agenda não foi compartilhada com a conta de serviço (Fazer alterações nos eventos)"),
+            "erros": agenda["errors"]}
+    return {"ok": True, "agenda": config.GOOGLE_CALENDAR_ID, "conta_de_servico": email,
+            "ocupados_proximos_7_dias": len(agenda.get("busy", []))}

@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 
-from . import config, db, equipe, midia, processador, rotinas, whatsapp
+from . import config, db, equipe, google_agenda, midia, processador, rotinas, whatsapp
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("orya")
@@ -91,6 +91,12 @@ class MsgTeste(BaseModel):
     nome: str | None = None
     cliente_retorno: bool = False
     anuncio: str | None = None
+
+
+@app.get("/api/google/status", dependencies=[Depends(autenticar)])
+async def google_status():
+    """Confere se a Aurora consegue ler a agenda da Dra."""
+    return await google_agenda.status()
 
 
 @app.get("/api/whatsapp/status", dependencies=[Depends(autenticar)])

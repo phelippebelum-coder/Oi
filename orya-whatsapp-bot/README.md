@@ -113,11 +113,11 @@ Sem template, o lembrete só sai se a cliente falou nas últimas 24h; os demais 
 2. Em *APIs e serviços → Biblioteca*, ative a **Google Calendar API**.
 3. Em *APIs e serviços → Credenciais → Criar credenciais → Conta de serviço*, crie a conta (ex.: "orya-agenda"). Depois, na conta criada, aba *Chaves → Adicionar chave → JSON*. Um arquivo `.json` será baixado.
 4. Abra o Google Agenda da ORYA → *Configurações da agenda* → *Compartilhar com pessoas específicas* → adicione o e-mail da conta de serviço (termina em `@...iam.gserviceaccount.com`) com a permissão **Fazer alterações nos eventos**.
-5. No Railway, cole o conteúdo inteiro do `.json` em `GOOGLE_SERVICE_ACCOUNT_JSON` e deixe `GOOGLE_CALENDAR_ID=oryaesteticavancada@gmail.com`.
+5. No Render (Environment), cole o conteúdo inteiro do `.json` em `GOOGLE_SERVICE_ACCOUNT_JSON` e deixe `GOOGLE_CALENDAR_ID=oryaesteticavancada@gmail.com`.
 
 Nunca coloque a senha da conta Google no bot: ele não precisa dela.
 
-**E-mail (relatórios)**: ative a verificação em duas etapas na conta da ORYA e crie uma **senha de app** em https://myaccount.google.com/apppasswords. Cole essa senha de 16 letras em `SMTP_SENHA` no Railway.
+**E-mail (relatórios)**: ative a verificação em duas etapas na conta da ORYA e crie uma **senha de app** em https://myaccount.google.com/apppasswords. Cole essa senha de 16 letras em `SMTP_SENHA` no Render.
 
 ## Ajustes do dia a dia
 
