@@ -76,7 +76,7 @@ FERRAMENTAS = [
         "description": (
             "Agenda a avaliação com a Dra. Danielly no horário que a cliente escolheu (precisa ter vindo de "
             "ver_horarios). Antes, ela precisa saber o valor da avaliação e a regra de falta. Também agenda direto a "
-            "sessão de Lavieen (sem avaliação), com o procedimento_interesse indicando a sessão."
+            "sessão das campanhas Botox Day e Lavieen Day (sem avaliação), com o procedimento_interesse indicando a opção."
         ),
         "input_schema": {
             "type": "object",
