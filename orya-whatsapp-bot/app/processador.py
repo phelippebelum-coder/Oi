@@ -192,6 +192,12 @@ async def receber_eco(evento: dict):
         db.atualizar_contato(tel, bot_pausado_ate=ate.isoformat())
 
 
+NAO_PEDIR_REENVIO = (
+    "Não comente isso e NUNCA peça para ela reenviar, repetir, escrever ou mandar de novo. Se é o primeiro contato, "
+    "mande só a boas-vindas com uma pergunta aberta e espere. Se a conversa já estava andando, siga pelo contexto "
+    "com o próximo passo natural")
+
+
 async def _converter(evento: dict, canal: str) -> list[dict]:
     """Converte a mensagem em blocos para o Claude (texto e imagem)."""
     blocos = []
@@ -211,10 +217,11 @@ async def _converter(evento: dict, canal: str) -> list[dict]:
         if not blocos:
             nomes = {"audio": "um áudio", "video": "um vídeo", "document": "um arquivo",
                      "sticker": "uma figurinha", "image": "uma foto"}
-            blocos.append({"type": "text",
-                           "text": f"(a cliente enviou {nomes.get(tipo, 'uma mídia')} que você não consegue abrir)"})
+            blocos.append({"type": "text", "text": (
+                f"(a cliente enviou {nomes.get(tipo, 'uma mídia')} que não abre por aqui. " + NAO_PEDIR_REENVIO + ")")})
     if evento.get("texto"):
         blocos.append({"type": "text", "text": evento["texto"]})
     if not blocos:
-        blocos.append({"type": "text", "text": f"(mensagem do tipo {evento.get('msg_tipo')} sem texto)"})
+        blocos.append({"type": "text", "text": (
+            f"(chegou uma mensagem sem texto legível, tipo {evento.get('msg_tipo')}. " + NAO_PEDIR_REENVIO + ")")})
     return blocos
