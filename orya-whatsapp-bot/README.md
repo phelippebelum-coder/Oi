@@ -1,11 +1,11 @@
 # ORYA · Atendimento automático no WhatsApp (Claude)
 
-O bot faz o pré-atendimento da ORYA todos os dias, das 6h30 à meia-noite, no WhatsApp oficial (Cloud API da Meta). Ele segue o roteiro de SDR da clínica: acolhe a lead, descobre a queixa, faz a triagem de saúde, passa o preço só quando faz sentido, agenda a avaliação em horário livre e entrega para a equipe um resumo de cada cliente.
+O bot faz o pré-atendimento da ORYA todos os dias, das 6h30 à meia-noite, no WhatsApp oficial (Cloud API da Meta). Ele segue o roteiro de SDR da clínica: acolhe a lead, descobre a queixa, tira as dúvidas e mostra os benefícios (a saúde fica para a ficha de anamnese, enviada depois do agendamento), passa o preço só quando faz sentido, agenda a avaliação em horário livre e entrega para a equipe um resumo de cada cliente.
 
 ## O que ele faz
 
 - **Responde como gente**: espera 1min30 sem mensagem nova para a cliente terminar de escrever (cada mensagem zera a contagem) e não responde de madrugada (o que chega entre meia-noite e 6h30 é respondido às 6h30; `ESPERA_CLIENTE_SEGUNDOS` e `RESPONDER_A_PARTIR_DE`). Tom humanizado: balões curtos, uma pergunta por vez, usa o nome e as palavras da cliente.
-- **Categoriza cada contato** numa ficha: lead novo ou cliente de retorno, status, temperatura (quente/morna/fria), etapa, interesses, queixa, triagem, objeções, origem (anúncio).
+- **Categoriza cada contato** numa ficha: lead novo ou cliente de retorno, status, temperatura (quente/morna/fria), etapa, interesses, queixa, alertas de saúde que ela contar, objeções, origem (anúncio).
 - **Agenda a avaliação** consultando a agenda interna, sempre oferecendo duas opções reais. Também remarca e cancela.
 - **Avisa a equipe** no WhatsApp e no painel quando agenda, quando precisa de uma pessoa ou quando falta preço na tabela.
 - **Sai de cena sozinho** quando alguém da equipe responde pelo app WhatsApp Business (modo coexistência) e volta depois de 12h, ou quando vocês mandarem pelo painel.
@@ -87,7 +87,7 @@ Pelas regras do WhatsApp, depois de 24h sem mensagem da cliente só dá pra escr
 
 **Follow-up** (categoria **Marketing**, cobrado por mensagem; `{{1}}` = primeiro nome). Coloque os nomes em `FOLLOWUP_TEMPLATES`. Sugestões de texto:
 
-- `orya_followup_d1`: `Oi, {{1}}! Fiquei pensando na nossa conversa de ontem. Ficou alguma dúvida que eu possa te ajudar? 🤍`
+- `orya_followup_d1` (`{{2}}` = link do grupo): `Oi, {{1}}! Fiquei pensando na nossa conversa de ontem. Ficou alguma dúvida que eu possa te ajudar? Ah, e as novidades e condições especiais da ORYA saem primeiro no nosso grupo VIP: {{2}} 🤍`
 - `orya_followup_d3`: `{{1}}, uma dúvida bem comum de quem está pensando em fazer um procedimento é se vai ficar natural. Aqui a Dra. Danielly trabalha sempre com a linha natural, começando pelo necessário. Quer que eu te explique como funciona a avaliação?`
 - `orya_followup_d7`: `Oi, {{1}}! Abriram alguns horários de avaliação com a Dra. Danielly essa semana. Quer que eu veja um que encaixe na sua rotina?`
 - `orya_followup_d15`: `{{1}}, passando só pra dizer que a ORYA tá aqui quando você quiser cuidar de você. É só me chamar por aqui 🤍`

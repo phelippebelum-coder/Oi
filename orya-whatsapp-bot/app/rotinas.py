@@ -11,7 +11,8 @@ log = logging.getLogger("orya.rotinas")
 # O que cada etapa da cadência deve trazer (cadência A da ORYA: lead que não agendou).
 NOTAS_ETAPA = {
     "1": ("Ela parou de responder desde ontem. Retome com carinho a queixa ou o motivo dela, com as palavras "
-          "dela, e traga algo novo e útil. Termine com uma pergunta leve."),
+          "dela, e traga algo novo e útil. Convide também para o grupo VIP da ORYA no WhatsApp, onde saem as "
+          "novidades e condições especiais ({link}). Termine com uma pergunta leve."),
     "3": ("Ela está há 3 dias sem responder. Tire uma dúvida comum de quem está na fase dela (dor, naturalidade, "
           "tempo de recuperação ou como funciona a avaliação), sem cobrança."),
     "7": "Ela está há 7 dias sem responder. Ofereça duas opções reais de horário (use ver_horarios) de forma leve.",
@@ -254,7 +255,7 @@ async def enviar_followup(contato: dict, chave: str):
                        "FOLLOWUP_TEMPLATES.")
         return
     parametros = [_nome(contato)]
-    if chave == "mensal" and config.GRUPO_VIP_LINK:
+    if chave in ("1", "mensal") and config.GRUPO_VIP_LINK:
         parametros.append(config.GRUPO_VIP_LINK)
     try:
         await whatsapp.enviar_template(tel, template, parametros)
