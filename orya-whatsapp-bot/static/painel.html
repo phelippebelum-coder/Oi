@@ -61,6 +61,7 @@
       <input id="busca" placeholder="Buscar nome, telefone, interesse...">
       <select id="fTipo"><option value="">Todos os tipos</option><option value="lead">Leads novos</option><option value="cliente">Clientes de retorno</option></select>
       <select id="fStatus"><option value="">Todos os status</option><option>novo</option><option>em_conversa</option><option>qualificado</option><option>agendado</option><option>humano</option><option>perdido</option><option>fornecedor</option><option>opt_out</option></select>
+      <select id="fLista"><option value="">Todas as listas</option><option>LEAD NOVO</option><option>ADS LAVIEEN</option><option>ADS BOTOX</option></select>
       <select id="fTemp"><option value="">Qualquer temperatura</option><option>quente</option><option>morna</option><option>fria</option></select>
       <label><input type="checkbox" id="fTeste"> mostrar testes</label>
     </div>
@@ -102,7 +103,7 @@ document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
 function nome(c) { const f = c.ficha || {}; return f.nome_completo || f.nome || c.perfil_nome || 'Sem nome'; }
 
 function etiquetas(c) {
-  return `<span class="etq ${c.tipo === 'cliente' ? 'cliente' : ''}">${c.tipo === 'cliente' ? 'cliente' : 'lead'}</span>` +
+  return (c.listas || []).map(l => `<span class="etq quente"><b>${esc(l)}</b></span>`).join('') + `<span class="etq ${c.tipo === 'cliente' ? 'cliente' : ''}">${c.tipo === 'cliente' ? 'cliente' : 'lead'}</span>` +
     `<span class="etq">${esc(c.status)}</span>` +
     (c.temperatura ? `<span class="etq ${c.temperatura}">${esc(c.temperatura)}</span>` : '') +
     (c.origem ? `<span class="etq">${esc(c.origem)}</span>` : '') +
@@ -117,6 +118,7 @@ function renderLeads() {
     (!$('#fTipo').value || c.tipo === $('#fTipo').value) &&
     (!$('#fStatus').value || c.status === $('#fStatus').value) &&
     (!$('#fTemp').value || c.temperatura === $('#fTemp').value) &&
+    (!$('#fLista').value || (c.listas || []).includes($('#fLista').value)) &&
     (!busca || JSON.stringify(c).toLowerCase().includes(busca)));
   const base = contatos.filter(c => $('#fTeste').checked || c.canal !== 'teste');
   const n = f => base.filter(f).length;
@@ -233,7 +235,7 @@ async function carregar() {
   const avs = await (await fetch('/api/avisos')).json();
   const n = avs.filter(a => !a.lido).length; $('#nAvisos').textContent = n ? `(${n})` : '';
 }
-['#busca', '#fTipo', '#fStatus', '#fTemp', '#fTeste'].forEach(s => $(s).oninput = () => { renderLeads(); if (!$('#aba-agenda').hidden) renderAgenda(); });
+['#busca', '#fTipo', '#fStatus', '#fTemp', '#fLista', '#fTeste'].forEach(s => $(s).oninput = () => { renderLeads(); if (!$('#aba-agenda').hidden) renderAgenda(); });
 carregar(); setInterval(() => { carregar(); if (aberto) abrir(aberto); }, 15000);
 </script>
 </body>

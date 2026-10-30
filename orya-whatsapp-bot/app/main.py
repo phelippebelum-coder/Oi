@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 
-from . import config, db, midia, processador, rotinas, whatsapp
+from . import config, db, equipe, midia, processador, rotinas, whatsapp
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("orya")
@@ -150,6 +150,7 @@ async def contatos():
     lista = db.listar_contatos()
     for c in lista:
         c["bot_pausado"] = processador.bot_pausado(c)
+        c["listas"] = equipe.listas(c)
     return lista
 
 

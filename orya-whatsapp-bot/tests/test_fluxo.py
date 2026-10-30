@@ -751,3 +751,13 @@ def test_fornecedor_sem_followup(monkeypatch):
                          ultima_msg_bot_em=(db.agora() - timedelta(days=4)).isoformat())
     asyncio.run(rotinas.followups((db.agora() - timedelta(days=0)).astimezone(config.TZ).replace(hour=10)))
     assert db.obter_contato(tel)["followups_enviados"] == 0
+
+
+def test_listas_whatsapp_por_anuncio():
+    from app import equipe
+    lead = {"tipo": "lead", "origem": "anuncio", "referral": {"headline": "Lavieen Day"}, "ficha": {}}
+    assert equipe.listas(lead) == ["LEAD NOVO", "ADS LAVIEEN"]
+    lead = {"tipo": "lead", "origem": "anuncio", "referral": None, "ficha": {"interesses": ["botox"]}}
+    assert equipe.listas(lead) == ["LEAD NOVO", "ADS BOTOX"]
+    assert equipe.listas({"tipo": "lead", "ficha": {"interesses": ["botox"]}}) == ["LEAD NOVO"]
+    assert equipe.listas({"tipo": "cliente", "ficha": {}}) == []
