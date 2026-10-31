@@ -67,6 +67,8 @@ FERRAMENTAS = [
                 "unidade": {"type": "string", "enum": ["jardim_sao_paulo", "tatuape", "jardins"], "description": "Unidade escolhida pela cliente"},
                 "a_partir_de": {"type": "string", "description": "Data AAAA-MM-DD (opcional)"},
                 "periodo": {"type": "string", "enum": ["manha", "tarde", "noite"]},
+                "evento": {"type": "string", "enum": ["lavieen_day"],
+                           "description": "Use para o Lavieen Day: devolve todos os horários livres do dia do evento"},
             },
             "required": ["unidade"],
         },
@@ -85,6 +87,9 @@ FERRAMENTAS = [
                 "inicio": {"type": "string", "description": "Data e hora ISO exatamente como veio de ver_horarios"},
                 "unidade": {"type": "string", "enum": ["jardim_sao_paulo", "tatuape", "jardins"], "description": "Unidade escolhida pela cliente"},
                 "procedimento_interesse": {"type": "string"},
+                "evento": {"type": "string", "enum": ["lavieen_day"], "description": "Preencha se for o Lavieen Day"},
+                "reserva": {"type": "string", "enum": ["avaliacao_200", "sinal_campanha_150"],
+                            "description": "avaliacao_200 (padrão) ou sinal_campanha_150 (Botox Day, Botox Para Sempre, Lavieen Day)"},
                 "forma_pagamento": {"type": "string", "enum": ["pix", "cartao", "a_definir"]},
                 "resumo_para_equipe": {
                     "type": "string",
@@ -272,6 +277,16 @@ async def _ver_horarios(entrada: dict) -> str:
         except ValueError:
             pass
     unidade = entrada.get("unidade") or agenda.UNIDADE_PADRAO
+    if ev := entrada.get("evento"):
+        info = agenda.eventos().get(ev)
+        if not info:
+            return "Evento desconhecido."
+        livres = agenda.horarios_evento(ev, await _ocupados_google())
+        if not livres:
+            return f"O {info['nome']} está sem horários livres. Avise a equipe com avisar_equipe."
+        return (f"Horários livres no {info['nome']} ({agenda.descrever(livres[0]).split(' às ')[0]}, unidade "
+                f"{agenda.nome_unidade(info['unidade'])}), ISO | como falar. Pode oferecer qualquer um, inclusive "
+                "o do almoço:\n" + "\n".join(f"{s.isoformat()} | {agenda.descrever(s)}" for s in livres))
     if unidade not in agenda.unidades():
         return "Unidade desconhecida. Use jardim_sao_paulo, tatuape ou jardins."
     if not agenda.agenda_aberta(unidade):
@@ -311,7 +326,11 @@ async def _agendar(contato: dict, entrada: dict) -> str:
     if not inicio:
         return "Data inválida. Use o ISO exatamente como veio de ver_horarios."
     google_agenda.limpar_cache()
-    motivo = agenda.validar_horario(inicio, unidade, await _ocupados_google())
+    if ev := entrada.get("evento"):
+        unidade = agenda.eventos().get(ev, {}).get("unidade", unidade)
+        motivo = agenda.validar_evento(ev, inicio, await _ocupados_google())
+    else:
+        motivo = agenda.validar_horario(inicio, unidade, await _ocupados_google())
     if motivo:
         return f"Não foi possível agendar: {motivo}. Consulte ver_horarios de novo e ofereça outras opções."
     forma = entrada.get("forma_pagamento") or "a_definir"
@@ -326,7 +345,7 @@ async def _agendar(contato: dict, entrada: dict) -> str:
         tel, "agendamento",
         f"✅ Nova avaliação agendada pelo bot\n{_rotulo_contato(contato)}\n"
         f"{quando} com {agenda.PROFISSIONAIS[prof]}, unidade {agenda.nome_unidade(unidade)}\nInteresse: {entrada.get('procedimento_interesse')}\n"
-        f"💳 Avaliação R$ 200: pagamento PENDENTE ({ {'pix': 'Pix', 'cartao': 'link de cartão'}.get(forma, 'forma a definir') }), "
+        f"💳 {'Sinal da campanha R$ 150' if entrada.get('reserva') == 'sinal_campanha_150' else 'Avaliação R$ 200'}: pagamento PENDENTE ({ {'pix': 'Pix', 'cartao': 'link de cartão'}.get(forma, 'forma a definir') }), "
         f"prazo {prazo.strftime('%d/%m às %H:%M')}\n\n"
         f"{entrada.get('resumo_para_equipe', '')}",
     )

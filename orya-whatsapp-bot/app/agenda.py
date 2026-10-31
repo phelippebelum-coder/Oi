@@ -85,6 +85,8 @@ def horarios_livres(unidade: str = UNIDADE_PADRAO, a_partir: date | None = None,
     livres = []
     for d in range(cfg["dias_a_frente"]):
         dia = inicio_busca + timedelta(days=d)
+        if _dia_de_evento(dia):
+            continue
         for ini_s, fim_s in _expediente(cfg, unidade).get(str(dia.weekday()), []):
             slot = datetime.combine(dia, time.fromisoformat(ini_s), tzinfo=config.TZ)
             fim = datetime.combine(dia, time.fromisoformat(fim_s), tzinfo=config.TZ)
@@ -99,6 +101,43 @@ def horarios_livres(unidade: str = UNIDADE_PADRAO, a_partir: date | None = None,
                     livres.append(slot)
                 slot += dur
     return _espalhar(livres, limite)
+
+
+def eventos() -> dict[str, dict]:
+    return _cfg().get("eventos", {})
+
+
+def _dia_de_evento(dia: date) -> bool:
+    return any(e["data"] == dia.isoformat() for e in eventos().values())
+
+
+def horarios_evento(chave: str, ocupados: list[Intervalo] | None = None) -> list[datetime]:
+    """Todos os horários livres do dia do evento (inclusive o do almoço)."""
+    ev = eventos().get(chave)
+    if not ev:
+        return []
+    cfg = _cfg()
+    dia = date.fromisoformat(ev["data"])
+    dur = timedelta(minutes=ev["duracao_min"])
+    slot = datetime.combine(dia, time.fromisoformat(ev["inicio"]), tzinfo=config.TZ)
+    fim = datetime.combine(dia, time.fromisoformat(ev["fim"]), tzinfo=config.TZ)
+    minimo = datetime.now(config.TZ) + timedelta(hours=cfg["antecedencia_min_horas"])
+    ocup = _ocupacao()
+    livres = []
+    while slot + dur <= fim:
+        if slot >= minimo and ocup.get(slot.isoformat(), 0) < 1 and not _conflita(slot, dur, ocupados or []):
+            livres.append(slot)
+        slot += dur
+    return livres
+
+
+def validar_evento(chave: str, inicio: datetime, ocupados: list[Intervalo] | None = None) -> str | None:
+    ev = eventos().get(chave)
+    if not ev:
+        return "evento desconhecido"
+    if inicio not in horarios_evento(chave, ocupados):
+        return f"horário fora do {ev['nome']} ou já ocupado"
+    return None
 
 
 def _no_periodo(slot: datetime, periodo: str | None) -> bool:
@@ -150,6 +189,8 @@ def validar_horario(inicio: datetime, unidade: str = UNIDADE_PADRAO,
         return "horário muito próximo ou no passado"
     if _bloqueado(cfg, inicio):
         return "dia/horário bloqueado na agenda"
+    if _dia_de_evento(inicio.date()):
+        return "dia reservado para campanha (agende pelo evento)"
     dur = timedelta(minutes=cfg["duracao_min"])
     dentro = False
     for ini_s, fim_s in _expediente(cfg, unidade).get(str(inicio.weekday()), []):

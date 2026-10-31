@@ -761,3 +761,19 @@ def test_listas_whatsapp_por_anuncio():
     assert equipe.listas(lead) == ["LEAD NOVO", "ADS BOTOX"]
     assert equipe.listas({"tipo": "lead", "ficha": {"interesses": ["botox"]}}) == ["LEAD NOVO"]
     assert equipe.listas({"tipo": "cliente", "ficha": {}}) == []
+
+
+def test_lavieen_day_horarios_do_evento(monkeypatch):
+    from datetime import datetime as dt
+    from app import agenda
+    cfg = dict(config.AGENDA_PADRAO)
+    amanha = (dt.now(config.TZ) + timedelta(days=2)).date().isoformat()
+    cfg["eventos"] = {"lavieen_day": {"nome": "Lavieen Day", "data": amanha, "unidade": "jardim_sao_paulo",
+                                      "inicio": "08:00", "fim": "20:00", "duracao_min": 60}}
+    monkeypatch.setattr(config, "carregar_agenda", lambda: cfg)
+    livres = agenda.horarios_evento("lavieen_day")
+    assert [s.hour for s in livres] == list(range(8, 20))
+    assert agenda.validar_evento("lavieen_day", livres[4]) is None
+    # o dia do evento sai da agenda normal
+    assert not [s for s in agenda.horarios_livres("jardim_sao_paulo", limite=100) if s.date().isoformat() == amanha]
+    assert agenda.validar_horario(livres[0], "jardim_sao_paulo") is not None

@@ -113,6 +113,11 @@ AGENDA_PADRAO = {
     "dias_a_frente": 14,
     "avaliacoes_simultaneas": 1,
     "bloqueios": [],  # ex.: ["2026-11-02", "2026-11-15 14:00"]
+    # Dias de campanha: só o evento é oferecido nesse dia (a Dra. fica dedicada a ele em todas as unidades).
+    "eventos": {
+        "lavieen_day": {"nome": "Lavieen Day", "data": "2026-11-14", "unidade": "jardim_sao_paulo",
+                        "inicio": "08:00", "fim": "20:00", "duracao_min": 60},
+    },
     "unidades": {
         "jardim_sao_paulo": {
             "nome": "Jardim São Paulo",
@@ -120,7 +125,7 @@ AGENDA_PADRAO = {
             "referencia": "pertinho de Santana e do Shopping Center Norte",
             "expediente": _SEG_A_SAB,
         },
-        "tatuape": {"nome": "Tatuapé", "endereco": "", "referencia": "Zona Leste", "expediente": {}},
+        "tatuape": {"nome": "Tatuapé", "endereco": "", "referencia": "Zona Leste", "expediente": _SEG_A_SAB},
         "jardins": {"nome": "Jardins", "endereco": "", "referencia": "região dos Jardins", "expediente": {}},
     },
 }
