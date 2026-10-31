@@ -777,3 +777,18 @@ def test_lavieen_day_horarios_do_evento(monkeypatch):
     # o dia do evento sai da agenda normal
     assert not [s for s in agenda.horarios_livres("jardim_sao_paulo", limite=100) if s.date().isoformat() == amanha]
     assert agenda.validar_horario(livres[0], "jardim_sao_paulo") is not None
+
+
+def test_falha_do_claude_nao_manda_nada_para_a_cliente(monkeypatch):
+    import anthropic
+    import httpx
+
+    async def falha(_historico):
+        raise anthropic.APIConnectionError(request=httpx.Request("POST", "https://api.anthropic.com"))
+
+    monkeypatch.setattr(cerebro, "_chamar", falha)
+    tel = "5511977776666"
+    db.garantir_contato(tel)
+    assert asyncio.run(cerebro.responder(tel, [{"type": "text", "text": "oi"}])) == []
+    aviso = db.listar_avisos()[0]
+    assert aviso["tipo"] == "instabilidade" and "não recebeu" in aviso["texto"]

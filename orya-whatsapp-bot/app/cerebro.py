@@ -7,12 +7,11 @@ from datetime import datetime
 
 import anthropic
 
-from . import agenda, config, db, ferramentas
+from . import agenda, config, db, equipe, ferramentas
 
 log = logging.getLogger("orya.cerebro")
 
 MAX_RODADAS = 6
-MSG_FALHA = "Oi! Tive uma instabilidade aqui agora, mas já chamei alguém da equipe pra continuar com você 🤍"
 
 # Sinais de anotação interna (resumo, ficha, falar da cliente em 3ª pessoa) que nunca podem chegar ao WhatsApp dela.
 _FERRAMENTAS = ("atualizar_ficha|ver_horarios|agendar_avaliacao|remarcar_ou_cancelar|solicitar_ligacao|"
@@ -173,11 +172,13 @@ async def _gerar(telefone: str) -> list[str] | None:
         try:
             resp = await _chamar(db.obter_historico(telefone))
         except anthropic.APIError:
+            # Falha técnica: a cliente não recebe nada; só o Phelippe e a Dra. são avisados.
             log.exception("Falha na API do Claude")
-            await ferramentas.executar(
-                "transferir_para_humano",
-                {"motivo": "falha técnica no bot", "urgente": False, "resumo": "O bot não conseguiu responder."},
-                telefone,
+            await equipe.notificar(
+                telefone, "instabilidade",
+                f"⚠️ Instabilidade técnica: a Aurora não conseguiu responder +{telefone}. A cliente não recebeu "
+                "nenhuma mensagem de erro. Se puder, responda pelo WhatsApp Business; se não, a Aurora responde "
+                "quando ela mandar a próxima mensagem.",
             )
             return None
 
@@ -221,7 +222,7 @@ async def responder(telefone: str, conteudo_cliente: list[dict], nota: str | Non
 
     textos = await _gerar(telefone)
     if textos is None:
-        return [MSG_FALHA]
+        return []  # falhou: nada vai para a cliente (a equipe já foi avisada)
     baloes = dividir_baloes("\n\n".join(textos))
 
     if bloqueados := [b for b in baloes if parece_anotacao_interna(b)]:
@@ -233,7 +234,7 @@ async def responder(telefone: str, conteudo_cliente: list[dict], nota: str | Non
         db.adicionar_historico(telefone, "system", AVISO_VAZAMENTO)
         textos = await _gerar(telefone)
         if textos is None:
-            return [MSG_FALHA]
+            return []
         baloes = [b for b in dividir_baloes("\n\n".join(textos)) if not parece_anotacao_interna(b)]
 
     atualizacao = {"ultima_msg_bot_em": db.agora_iso()}
