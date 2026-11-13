@@ -48,7 +48,9 @@ O que não for verificado em campo fica registrado nas notas da prancha. Não é
 
 ## DWG
 
-O gerador grava DXF (AutoCAD 2018). Para entregar em DWG, há duas opções:
+Com o ODA File Converter instalado (gratuito), o `gerar.py` também grava o DWG no formato AutoCAD 2018, ao lado do DXF e do PDF.
+Sem ele, abra o DXF no AutoCAD e use **Salvar como → DWG**.
 
-- abrir o DXF no AutoCAD e usar **Salvar como → DWG**;
-- converter em lote com o ODA File Converter.
+Para instalar no Linux:
+`apt-get install ./ODAFileConverter_*.deb xvfb libopengl0`
+O instalador fica em opendesign.com/guestfiles.

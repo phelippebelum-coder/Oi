@@ -270,6 +270,9 @@ def main():
     doc.set_modelspace_vport(height=jy1 - jy0, center=((jx0 + jx1) / 2, (jy0 + jy1) / 2))
     doc.saveas(out / f"{nome}.dxf")
     folha.exporta_pdf(doc, psp.name, out / f"{nome}.pdf", P["formato"])
+    dwg = folha.exporta_dwg(out / f"{nome}.dxf")
+    if dwg:
+        print("dwg:", dwg)
     print("ok:", out / f"{nome}.dxf", out / f"{nome}.pdf")
 
 

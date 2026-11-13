@@ -423,3 +423,26 @@ def exporta_pdf(doc, nome_layout, caminho_pdf, formato):
     pg = layout.Page(W, H, layout.Units.mm, margins=layout.Margins.all(0))
     pdf = be.get_pdf_bytes(pg, settings=layout.Settings(fit_page=False, scale=1.0))
     pathlib.Path(caminho_pdf).write_bytes(pdf)
+
+
+def exporta_dwg(caminho_dxf, versao="ACAD2018"):
+    """Converte o DXF em DWG com o ODA File Converter (gratuito). Devolve o caminho ou None."""
+    import shutil, subprocess, tempfile
+    exe = shutil.which("ODAFileConverter")
+    if not exe:
+        print("ODAFileConverter não instalado - DWG não gerado (abra o DXF no AutoCAD e salve como DWG)")
+        return None
+    dxf = pathlib.Path(caminho_dxf)
+    with tempfile.TemporaryDirectory() as ent, tempfile.TemporaryDirectory() as sai:
+        shutil.copy(dxf, ent)
+        cmd = [exe, ent, sai, versao, "DWG", "0", "1", "*.dxf"]
+        if shutil.which("xvfb-run"):
+            cmd = ["xvfb-run", "-a"] + cmd
+        subprocess.run(cmd, check=False, capture_output=True, timeout=600)
+        gerado = pathlib.Path(sai) / (dxf.stem + ".dwg")
+        if not gerado.exists():
+            print("Falha na conversão para DWG")
+            return None
+        destino = dxf.with_suffix(".dwg")
+        shutil.copy(gerado, destino)
+        return destino
