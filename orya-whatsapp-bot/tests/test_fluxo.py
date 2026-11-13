@@ -792,3 +792,30 @@ def test_falha_do_claude_nao_manda_nada_para_a_cliente(monkeypatch):
     assert asyncio.run(cerebro.responder(tel, [{"type": "text", "text": "oi"}])) == []
     aviso = db.listar_avisos()[0]
     assert aviso["tipo"] == "instabilidade" and "não recebeu" in aviso["texto"]
+
+
+def test_devolver_para_o_bot_responde_a_ultima_mensagem(monkeypatch):
+    respostas = []
+
+    async def responder(tel, canal, blocos, nota=None):
+        respostas.append((tel, nota))
+
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    monkeypatch.setattr(processador, "responder_e_enviar", responder)
+    tel = "5511966665555"
+    db.garantir_contato(tel)
+    db.atualizar_contato(tel, status="humano", bot_pausado_ate=(db.agora() + timedelta(hours=10)).isoformat(),
+                         ultima_msg_cliente_em=db.agora_iso())
+    db.registrar_conversa(tel, "equipe", "Oi! Temos quinta às 10h")
+    db.registrar_conversa(tel, "cliente", "Quinta não dá, tem sexta?")
+    with TestClient(app) as cli:
+        r = cli.post(f"/api/contatos/{tel}", json={"bot": "retomar"})
+        assert r.json()["aurora_respondeu"] is True
+    assert respostas and respostas[0][1] == processador.NOTA_ASSUMIR
+    c = db.obter_contato(tel)
+    assert c["status"] == "em_conversa" and not c["bot_pausado_ate"]
+    # última mensagem da equipe: a Aurora só espera
+    db.registrar_conversa(tel, "equipe", "Te mando as opções já já")
+    assert asyncio.run(processador.assumir_conversa(tel)) is False

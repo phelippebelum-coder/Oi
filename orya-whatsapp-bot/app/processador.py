@@ -128,6 +128,26 @@ async def processar_pendente(tel: str):
         await responder_e_enviar(tel, canal, pend["blocos"], nota)
 
 
+NOTA_ASSUMIR = ("A equipe estava atendendo esta cliente e devolveu a conversa para você agora. Leia o histórico "
+                "(as mensagens da equipe aparecem como '(mensagem da equipe)'), continue exatamente de onde parou e "
+                "responda a última mensagem dela, sem se reapresentar e sem repetir o que a equipe já disse.")
+
+
+async def assumir_conversa(tel: str) -> bool:
+    """Devolvida para a Aurora no painel: se a última mensagem é da cliente e ainda sem resposta (dentro da
+    janela de 24 h), a Aurora responde na hora. Se não, espera a cliente ou o follow-up."""
+    contato = db.obter_contato(tel)
+    conversa = db.obter_conversa(tel)
+    if not contato or not conversa or conversa[-1]["autor"] != "cliente":
+        return False
+    ultima = contato.get("ultima_msg_cliente_em")
+    if not ultima or db.agora() - datetime.fromisoformat(ultima) > timedelta(hours=23, minutes=50):
+        return False
+    asyncio.create_task(responder_e_enviar(
+        tel, contato["canal"], [{"type": "text", "text": "(a equipe devolveu a conversa para você)"}], NOTA_ASSUMIR))
+    return True
+
+
 async def retomar_pendentes():
     """Rede de segurança (roda a cada minuto): responde o que ficou pendente sem timer, como após um reinício."""
     agora = db.agora()

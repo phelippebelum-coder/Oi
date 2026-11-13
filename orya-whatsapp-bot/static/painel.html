@@ -156,7 +156,11 @@ function fotoOuTexto(t) {
 }
 function fechar() { $('#detalhe').style.display = 'none'; aberto = null; }
 async function acao(tel, corpo) {
-  await fetch('/api/contatos/' + encodeURIComponent(tel), { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(corpo) });
+  const r = await fetch('/api/contatos/' + encodeURIComponent(tel), { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(corpo) });
+  const d = await r.json().catch(() => ({}));
+  if (corpo.bot === 'retomar') alert(d.aurora_respondeu
+    ? 'A Aurora assumiu e já está respondendo a última mensagem da cliente.'
+    : 'A Aurora assumiu. Ela responde quando a cliente mandar a próxima mensagem (ou no follow-up).');
   await carregar(); abrir(tel);
 }
 

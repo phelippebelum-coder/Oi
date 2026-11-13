@@ -183,19 +183,25 @@ class AcaoContato(BaseModel):
 
 @app.post("/api/contatos/{telefone}", dependencies=[Depends(autenticar)])
 async def alterar_contato(telefone: str, a: AcaoContato):
-    if not db.obter_contato(telefone):
+    contato = db.obter_contato(telefone)
+    if not contato:
         raise HTTPException(404)
     campos = {}
     if a.bot == "pausar":
         campos["bot_pausado_ate"] = (db.agora() + timedelta(days=30)).isoformat()
     elif a.bot == "retomar":
         campos["bot_pausado_ate"] = None
+        if contato["status"] == "humano":
+            campos["status"] = "em_conversa"
     if a.tipo in ("lead", "cliente"):
         campos["tipo"] = a.tipo
     if a.status:
         campos["status"] = a.status
     db.atualizar_contato(telefone, **campos)
-    return {"ok": True}
+    respondeu = False
+    if a.bot == "retomar":
+        respondeu = await processador.assumir_conversa(telefone)
+    return {"ok": True, "aurora_respondeu": respondeu}
 
 
 @app.get("/api/agendamentos", dependencies=[Depends(autenticar)])
