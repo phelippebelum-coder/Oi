@@ -1,0 +1,3 @@
+spda-asbuilt/projetos/*/saida/
+__pycache__/
+*.pyc
