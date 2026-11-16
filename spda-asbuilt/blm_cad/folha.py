@@ -126,6 +126,16 @@ def _cria_blocos(doc):
     b.add_lwpolyline([(R_DESC * 0.7, R_DESC * 0.7), (2.0, 1.2), (1.6, 2.0), (2.9, 2.6)],
                      dxfattribs={"layer": "0", "color": 0})
 
+    # descida natural/estrutural (armadura do concreto) com conexão de ensaio
+    b = doc.blocks.new("BLM_DESCIDA_ESTRUTURAL")
+    b.add_lwpolyline([(-R_DESC, -R_DESC), (R_DESC, -R_DESC), (R_DESC, R_DESC), (-R_DESC, R_DESC)], close=True,
+                     dxfattribs={"layer": "0", "color": 0})
+    h = b.add_hatch(color=0, dxfattribs={"layer": "0"})
+    h.paths.add_polyline_path([(0.42 * math.cos(math.radians(t)), 0.42 * math.sin(math.radians(t)))
+                               for t in range(0, 360, 20)], is_closed=True)
+    b.add_lwpolyline([(R_DESC, R_DESC * 0.6), (2.0, 1.2), (1.6, 2.0), (2.9, 2.6)],
+                     dxfattribs={"layer": "0", "color": 0})
+
     b = doc.blocks.new("BLM_NORTE")
     b.add_circle((0, 0), 1.0, dxfattribs={"layer": "0", "color": 0})
     h = b.add_hatch(color=0, dxfattribs={"layer": "0"})
