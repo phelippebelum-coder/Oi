@@ -52,9 +52,15 @@ QUADRA = dict(piso=[(60, 68), (196, 68), (196, 334), (60, 334)],
 TEXTOS_BASE = [((240, 790), "ESTACIONAMENTO"), ((131, 100), "QUADRA EXTERNA")]
 
 # Marcações (px)
-FRANKLIN = [  # (x, y, edificação ou None)
-    (147, 377, "A"), (357, 551, "A"), (359, 624, "A"), (146, 682, "A"), (226, 680, "A"), (312, 682, "A"),
-    (71, 207, "QUADRA"), (188, 213, "QUADRA"), (69, 288, "QUADRA"), (185, 294, "QUADRA"),
+# Alinhados (pedido Phelippe 16/11): centralizados nas linhas da cobertura e simétricos.
+#  - Bloco A, linha y=672 (82..355): simétricos ao centro (218,5), 1º alinhado com o Franklin da cob. metálica
+#  - Bloco A, linha x=355 (553..672): 2 captores com divisão igual do trecho
+#  - Quadra: 4 postes em retângulo (colunas e linhas alinhadas)
+FRANKLIN = [  # (x, y, edificação)
+    (146.5, 377, "A"),
+    (355, 582.75, "A"), (355, 642.25, "A"),
+    (146.5, 672, "A"), (218.5, 672, "A"), (290.5, 672, "A"),
+    (70, 210, "QUADRA"), (186.5, 210, "QUADRA"), (70, 291, "QUADRA"), (186.5, 291, "QUADRA"),
 ]
 DESCIDAS = [  # (x, y, edificação) - projetadas na fachada
     (329, 202, "B"), (369, 292, "B"),
