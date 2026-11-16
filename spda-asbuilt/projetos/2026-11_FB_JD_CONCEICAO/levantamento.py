@@ -17,7 +17,7 @@ PROJETO = {
     "escala": 250,
     "m_por_px": 0.16,
     "alt_img": 864,
-    "janela_px": (30, 22, 610, 855),
+    "janela_px": (30, 10, 610, 842),
     "titulo": ["FUNDAÇÃO BRADESCO - JD. CONCEIÇÃO", "SPDA - AS BUILT",
                "CAPTAÇÃO E DESCIDAS - IMPLANTAÇÃO"],
     "cliente": ["FUNDAÇÃO BRADESCO", "UNID. ESCOLAR JD. CONCEIÇÃO", "R. DOZE DE OUTUBRO, 180",
@@ -61,6 +61,15 @@ DESCIDAS = [  # (x, y, edificação) - projetadas na fachada
     (70, 335, "A"), (403, 387, "A"), (407, 600, "A"), (415, 740, "A"), (291, 747, "A"), (175, 746, "A"),
     (88, 739, "A"),
 ]
+# Descidas naturais/estruturais (armadura) - não visíveis em campo. Posição INDICATIVA nas extremidades.
+# Quantidade: relatório BLM-SPDA-2026-004 registra 16 conexões de ensaio de descida (D1-D3 + 13);
+# 9 aparentes levantadas -> 7 estruturais.
+DESCIDAS_ESTRUTURAIS = [
+    (287, 112, "C"), (562, 34, "C"), (381, 125, "C"),
+    (405, 163, "D"), (535, 114, "D"),
+    (390, 212, "E"), (560, 377, "E"),
+]
+
 MINICAPTORES = [  # (x, y, edificação) - projetados na gaiola
     (291, 49, "C"), (291, 78, "C"), (288, 112, "C"), (561, 37, "C"), (567, 68, "C"), (574, 102, "C"),
     (369, 127, "C"),

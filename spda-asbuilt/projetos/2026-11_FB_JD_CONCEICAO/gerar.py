@@ -84,14 +84,22 @@ def main():
         l = math.hypot(vx, vy) or 1
         rot.append([xy[0] + 3.2 * vx / l, xy[1] + 3.2 * vy / l, f"D{n:02d}"])
         resumo[k]["desc"] += 1
+    for n, (x, y, k) in enumerate(L.DESCIDAS_ESTRUTURAIS, len(L.DESCIDAS) + 1):
+        xy = m(x, y)
+        folha.insere(msp, "BLM_DESCIDA_ESTRUTURAL", xy, "SPDA-DESCIDA", SF * 1.4)
+        cx, cy = m(*centroide(pol[k]))
+        vx, vy = xy[0] - cx, xy[1] - cy
+        l = math.hypot(vx, vy) or 1
+        rot.append([xy[0] + 3.2 * vx / l, xy[1] + 3.2 * vy / l, f"D{n:02d}"])
+        resumo[k]["desc"] += 1
     afasta_rotulos(rot, 3.0, 1.4)
     for lx, ly, t in rot:
         folha.texto(msp, t, (lx, ly), 1.1 * SF * 2 * 0.5, "SPDA-DESCIDA-ID", C.MIDDLE_CENTER)
 
     # ---------------- quadros
     situ = {
-        "A": "FRANKLIN + DESCIDAS", "B": "SÓ DESCIDAS", "C": "GAIOLA - S/ DESCIDA IDENT.",
-        "D": "GAIOLA - S/ DESCIDA IDENT.", "E": "GAIOLA - S/ DESCIDA IDENT.", "QUADRA": "MASTROS C/ FRANKLIN",
+        "A": "FRANKLIN + DESC. APARENTES", "B": "DESC. APARENTES", "C": "GAIOLA + DESC. ESTRUTURAIS",
+        "D": "GAIOLA + DESC. ESTRUTURAIS", "E": "GAIOLA + DESC. ESTRUTURAIS", "QUADRA": "POSTES C/ FRANKLIN",
     }
     resumo_q = [["EDIFICAÇÃO", "DESC.", "FRANK.", "MINIC.", "SITUAÇÃO"]]
     tot = dict(desc=0, frank=0, mini=0)
@@ -115,10 +123,12 @@ def main():
         "PLANTA ARQUITETÔNICA DE BASE: CONTORNOS DAS EDIFICAÇÕES E ESCALA SÃO APROXIMADOS. CONFERIR "
         "MEDIDAS NA OBRA.",
         "POSIÇÕES DE CAPTORES FRANKLIN, MINICAPTORES, GAIOLAS E DESCIDAS CONFORME LEVANTAMENTO DE CAMPO.",
-        "NOS BLOCOS C, D E E (GAIOLA COM MINICAPTORES) NÃO FORAM IDENTIFICADAS DESCIDAS NO LEVANTAMENTO.",
+        "NOS BLOCOS C, D E E AS DESCIDAS SÃO NATURAIS (ARMADURA ESTRUTURAL), NÃO VISÍVEIS NO LEVANTAMENTO: "
+        "POSIÇÃO INDICATIVA NAS EXTREMIDADES DOS BLOCOS. QUANTIDADE TOTAL DE DESCIDAS (16) CONFORME AS "
+        "CONEXÕES DE ENSAIO REGISTRADAS NO RELATÓRIO BLM-SPDA-2026-004.",
         "CONDUTORES DE INTERLIGAÇÃO NA COBERTURA DO BLOCO A (ENTRE CAPTORES FRANKLIN E DESCIDAS) NÃO "
         "LEVANTADOS - NÃO REPRESENTADOS.",
-        "DESCIDAS EM CABO DE COBRE NU 35 mm² (LAUDO DE INSPEÇÃO DE 16/01/2026).",
+        "DESCIDAS APARENTES EM CABO DE COBRE NU 35 mm² (LAUDO DE INSPEÇÃO DE 16/01/2026).",
         "ATERRAMENTO: ANEL DE ATERRAMENTO NÃO CONSTATADO (LAUDO DE 16/01/2026). NO PONTO 9 O ENSAIO NÃO "
         "APRESENTOU LEITURA NO LADO DO ATERRAMENTO (CIRCUITO ABERTO) - ADEQUAÇÃO PRIORITÁRIA.",
         "MANUTENÇÃO CORRETIVA EXECUTADA EM 11/2026: CONECTORES DA CAPTAÇÃO (C1 A C7) E DAS CONEXÕES DE "
@@ -129,10 +139,12 @@ def main():
     legenda = [
         folha.ItemLegenda("bloco", "MINICAPTOR (TERMINAL AÉREO) NA GAIOLA", "BLM_MINICAPTOR",
                           "SPDA-CAPTACAO-MINICAPTOR"),
-        folha.ItemLegenda("bloco", "CAPTOR FRANKLIN (NA COBERTURA OU EM MASTRO)", "BLM_FRANKLIN",
+        folha.ItemLegenda("bloco", "CAPTOR FRANKLIN (NA COBERTURA OU EM POSTE)", "BLM_FRANKLIN",
                           "SPDA-CAPTACAO-FRANKLIN"),
-        folha.ItemLegenda("bloco", "DESCIDA EM CABO DE COBRE NU 35 mm² (Dxx = IDENTIFICAÇÃO)", "BLM_DESCIDA",
-                          "SPDA-DESCIDA"),
+        folha.ItemLegenda("bloco", "DESCIDA APARENTE EM CABO DE COBRE NU 35 mm² (Dxx = IDENTIFICAÇÃO)",
+                          "BLM_DESCIDA", "SPDA-DESCIDA"),
+        folha.ItemLegenda("bloco", "DESCIDA NATURAL/ESTRUTURAL (ARMADURA) - POSIÇÃO INDICATIVA",
+                          "BLM_DESCIDA_ESTRUTURAL", "SPDA-DESCIDA"),
         folha.ItemLegenda("linha", "GAIOLA DE FARADAY - CONDUTOR DE CAPTAÇÃO", camada="SPDA-CAPTACAO-GAIOLA"),
         folha.ItemLegenda("linha", "CONTORNO DAS EDIFICAÇÕES (TRAÇADO DA IMAGEM AÉREA)", camada="ARQ-BASE"),
     ]
