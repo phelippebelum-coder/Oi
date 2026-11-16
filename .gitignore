@@ -1,3 +1,4 @@
 spda-asbuilt/projetos/*/saida/
 __pycache__/
 *.pyc
+spda-asbuilt/projetos/*/levantamento_marcado.*

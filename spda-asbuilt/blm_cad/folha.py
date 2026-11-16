@@ -29,11 +29,13 @@ EMPRESA = {
 }
 
 NORMAS = [
-    "ABNT NBR 5419-1:2015 - PROTEÇÃO CONTRA DESCARGAS ATMOSFÉRICAS - PRINCÍPIOS GERAIS",
-    "ABNT NBR 5419-2:2015 - GERENCIAMENTO DE RISCO",
-    "ABNT NBR 5419-3:2015 - DANOS FÍSICOS A ESTRUTURAS E PERIGOS À VIDA",
-    "ABNT NBR 5419-4:2015 - SISTEMAS ELÉTRICOS E ELETRÔNICOS INTERNOS NA ESTRUTURA",
-    "ABNT NBR 5410:2004 - INSTALAÇÕES ELÉTRICAS DE BAIXA TENSÃO",
+    "ABNT NBR 5419-1:2026 - PROTEÇÃO CONTRA DESCARGAS ATMOSFÉRICAS - PRINCÍPIOS GERAIS",
+    "ABNT NBR 5419-2:2026 - GERENCIAMENTO DE RISCO",
+    "ABNT NBR 5419-3:2026 - DANOS FÍSICOS A ESTRUTURAS E PERIGOS À VIDA",
+    "ABNT NBR 5419-4:2026 - SISTEMAS ELÉTRICOS E ELETRÔNICOS INTERNOS NA ESTRUTURA",
+    "ABNT NBR 13571:2024 - HASTE DE ATERRAMENTO AÇO-COBRE",
+    "ABNT NBR 16254:2024 - MATERIAIS PARA SISTEMA DE ATERRAMENTO",
+    "ABNT NBR 5410:2004 (VERSÃO CORRIGIDA 2008) - INSTALAÇÕES ELÉTRICAS DE BAIXA TENSÃO",
     "NR-10 - SEGURANÇA EM INSTALAÇÕES E SERVIÇOS EM ELETRICIDADE",
 ]
 
@@ -209,7 +211,8 @@ def _barra(psp, x0, x1, y, titulo):
 
 def prancha(doc, formato, carimbo: Carimbo, notas: list[str], legenda: list[ItemLegenda],
             quadro: list[list[str]] | None, janela_modelo, escala_den: int, nome_layout=None,
-            larg_coluna=200, faixa_inferior=0.0):
+            larg_coluna=200, faixa_inferior=0.0, quadros_extra=()):
+    """quadros_extra: [(titulo, linhas, larguras_relativas, colunas_alinhadas_a_esquerda)]"""
     """Cria o layout (paperspace) com moldura, coluna lateral BLM e viewport do modelo.
 
     janela_modelo = (xmin, ymin, xmax, ymax) em metros (modelo).
@@ -262,7 +265,7 @@ def prancha(doc, formato, carimbo: Carimbo, notas: list[str], legenda: list[Item
     hn = 2.4
     for i, n in enumerate(notas, 1):
         mtexto(psp, f"{i} - {n}", (cl, yy), hn, larg_coluna - 7)
-        nlin = max(1, math.ceil((len(n) + 4) * hn * 0.78 / (larg_coluna - 9)))
+        nlin = max(1, math.ceil((len(n) + 4) * hn * 0.86 / (larg_coluna - 9)))
         yy -= nlin * hn * 1.67 + 1.8
     y = yy - 1
     # --- legenda
@@ -286,16 +289,23 @@ def prancha(doc, formato, carimbo: Carimbo, notas: list[str], legenda: list[Item
         nlin = max(1, math.ceil(len(it.descricao) * 2.4 * 0.78 / (larg_coluna - 27)))
         yy -= max(10.0, nlin * 4.0 + 5.0)
     y = yy + 2
-    # --- quadro resumo
+    # --- quadros
+    tabelas = []
     if quadro:
-        y = _barra(psp, cx0, x1, y, "QUADRO RESUMO - LEVANTAMENTO")
-        cols = [cx0, cx0 + 80, cx0 + 101, cx0 + 122, cx0 + 145, x1]
+        tabelas.append(("QUADRO RESUMO - LEVANTAMENTO", quadro, [80, 21, 21, 23, 55], (0, 4)))
+    tabelas.extend(quadros_extra)
+    for titulo, linhas_q, larg, esq in tabelas:
+        y = _barra(psp, cx0, x1, y, titulo)
+        tot = sum(larg)
+        cols = [cx0]
+        for l in larg:
+            cols.append(cols[-1] + l * larg_coluna / tot)
         hl = 5.2
         yy = y
-        for i, row in enumerate(quadro):
+        for i, row in enumerate(linhas_q):
             for j, c in enumerate(row):
-                al = TextEntityAlignment.MIDDLE_LEFT if j in (0, 4) else TextEntityAlignment.MIDDLE_CENTER
-                xx = cols[j] + 1.5 if j in (0, 4) else (cols[j] + cols[j + 1]) / 2
+                al = TextEntityAlignment.MIDDLE_LEFT if j in esq else TextEntityAlignment.MIDDLE_CENTER
+                xx = cols[j] + 1.5 if j in esq else (cols[j] + cols[j + 1]) / 2
                 negrito = i == 0 or row[0] == "TOTAL"
                 texto(psp, c, (xx, yy - hl / 2), 2.2 if not negrito else 2.3,
                       "FOLHA-TITULO" if negrito else "FOLHA-TEXTO", al)
