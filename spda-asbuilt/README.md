@@ -27,6 +27,15 @@ cd projetos/2026-11_HGDP
 python gerar.py --base /caminho/HGDP-Imp_1.500.pdf
 ```
 
+## Ferramentas
+
+- `python -m blm_cad.marcacoes print.png` lê os pontos coloridos de um print marcado e gera `conferencia.png` e `marcacoes.json`.
+  Cores: azul = Franklin, vermelho = descida, verde = minicaptor, amarelo = gaiola.
+- `blm_cad/verifica.py` faz uma conferência interna do espaçamento entre descidas por classe (NBR 5419-3). O resultado não vai para a prancha.
+- `python -m blm_cad.extrai_detalhes prancha.dxf` monta a biblioteca de detalhes típicos (`assets/detalhes_tipicos.dxf`).
+  Para colocar detalhes numa prancha, passe `detalhes=(7, 2)` em `folha.prancha`.
+- A skill `.claude/skills/blm-asbuilt-spda` descreve o fluxo completo para sessões futuras.
+
 ## Manutenção do padrão
 
 - **Norma nova / notas-padrão / dados da empresa:** editar `NORMAS` e `EMPRESA` em `blm_cad/folha.py`.

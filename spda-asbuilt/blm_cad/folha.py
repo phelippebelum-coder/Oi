@@ -78,6 +78,7 @@ CAMADAS = {
     "FOLHA-TITULO": (COR["titulo"], 25, "Continuous"),
     "FOLHA-LOGO": ((0, 0, 0), 0, "Continuous"),
     "VIEWPORT": ((0, 0, 0), 0, "Continuous"),
+    "FOLHA-DETALHES": ((0, 0, 0), 13, "Continuous"),
 }
 
 ESTILO = "BLM"
@@ -221,7 +222,7 @@ def _barra(psp, x0, x1, y, titulo):
 
 def prancha(doc, formato, carimbo: Carimbo, notas: list[str], legenda: list[ItemLegenda],
             quadro: list[list[str]] | None, janela_modelo, escala_den: int, nome_layout=None,
-            larg_coluna=200, faixa_inferior=0.0, quadros_extra=()):
+            larg_coluna=200, faixa_inferior=0.0, quadros_extra=(), detalhes=()):
     """quadros_extra: [(titulo, linhas, larguras_relativas, colunas_alinhadas_a_esquerda)]"""
     """Cria o layout (paperspace) com moldura, coluna lateral BLM e viewport do modelo.
 
@@ -360,6 +361,8 @@ def prancha(doc, formato, carimbo: Carimbo, notas: list[str], legenda: list[Item
 
     if y < y_emp + 2:
         print(f"ATENÇÃO: coluna lateral sobrepõe ({y:.1f} < {y_emp:.1f}) - reduzir notas/legenda")
+    elif detalhes:
+        _detalhes(doc, psp, cx0, x1, y, y_emp, detalhes)
     return psp, vp
 
 
@@ -466,3 +469,39 @@ def exporta_dwg(caminho_dxf, versao="ACAD2018"):
         destino = dxf.with_suffix(".dwg")
         shutil.copy(gerado, destino)
         return destino
+
+
+def _detalhes(doc, psp, x0, x1, y_topo, y_base, numeros):
+    """Detalhes típicos da biblioteca (assets/detalhes_tipicos.dxf) lado a lado no espaço livre da coluna."""
+    from ezdxf.addons import Importer
+    info = json.load(open(AQUI / "assets/detalhes_tipicos.json", encoding="utf-8"))
+    nomes = [f"BLM_DET_{n:02d}" for n in numeros]
+    lib = ezdxf.readfile(AQUI / "assets/detalhes_tipicos.dxf")
+    imp = Importer(lib, doc)
+    imp.import_blocks([n for n in nomes if n not in doc.blocks])
+    imp.finalize()
+    vistos = set()
+
+    def padroniza(nome):  # tudo na camada de detalhes, cor por camada (preto na folha)
+        if nome in vistos:
+            return
+        vistos.add(nome)
+        for e in doc.blocks[nome]:
+            try:
+                e.dxf.layer = "FOLHA-DETALHES"
+                e.dxf.color = 256
+            except Exception:
+                pass
+            if e.dxftype() == "INSERT":
+                padroniza(e.dxf.name)
+    for n in nomes:
+        padroniza(n)
+    y = _barra(psp, x0, x1, y_topo, "DETALHES TÍPICOS (REFERÊNCIA)")
+    disp_h = y - y_base - 4
+    disp_w = (x1 - x0 - 6) / len(nomes)
+    esc = min(min(disp_w / info[n]["larg"], disp_h / info[n]["alt"]) for n in nomes) * 0.95
+    for i, n in enumerate(nomes):
+        w, h = info[n]["larg"] * esc, info[n]["alt"] * esc
+        cx = x0 + 3 + disp_w * (i + 0.5)
+        psp.add_blockref(n, (cx - w / 2, y - 2 - h), dxfattribs={"layer": "FOLHA-DETALHES",
+                                                                 "xscale": esc, "yscale": esc})

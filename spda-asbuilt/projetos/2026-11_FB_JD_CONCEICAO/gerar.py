@@ -158,7 +158,8 @@ def main():
     psp, vp = folha.prancha(
         doc, P["formato"], car, notas, legenda, None, (jx0, jy0, jx1, jy1), P["escala"], faixa_inferior=40,
         quadros_extra=[("QUADRO RESUMO - LEVANTAMENTO", resumo_q, [52, 18, 18, 18, 94], (0, 4)),
-                       ("ENSAIO DE CONTINUIDADE - CORRETIVA 14/11/2026", ensaio_q, [22, 40, 138], (2,))])
+                       ("ENSAIO DE CONTINUIDADE - CORRETIVA 14/11/2026", ensaio_q, [22, 40, 138], (2,))],
+        detalhes=(7, 2))
     W, Hf, me, mg = folha.FORMATOS[P["formato"]]
     folha.texto(psp, "IMPLANTAÇÃO - SPDA EXISTENTE (AS BUILT)", (me + 8, mg + 27), 5.0, "FOLHA-TITULO")
     folha.texto(psp, f"ESCALA 1:{P['escala']} (APROXIMADA - BASE TRAÇADA DE IMAGEM AÉREA)", (me + 8, mg + 20),

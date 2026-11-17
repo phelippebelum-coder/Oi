@@ -253,7 +253,8 @@ def main():
                         revisao=P["revisao"], folha=f"{P['formato']} - 01/01",
                         revisoes=[("0", P["data"], "EMISSÃO INICIAL - AS BUILT")])
     psp, vp = folha.prancha(doc, P["formato"], car, notas, legenda, quadro,
-                            (jx0, jy0, jx1, jy1), P["escala"], faixa_inferior=40)
+                            (jx0, jy0, jx1, jy1), P["escala"], faixa_inferior=40,
+                            detalhes=(1, 5))
     W, H, me, m = folha.FORMATOS[P["formato"]]
     folha.texto(psp, "IMPLANTAÇÃO GERAL - SPDA EXISTENTE (AS BUILT)", (me + 8, m + 27), 5.0, "FOLHA-TITULO")
     folha.texto(psp, f"ESCALA 1:{P['escala']}", (me + 8, m + 20), 3.0, "FOLHA-TEXTO")

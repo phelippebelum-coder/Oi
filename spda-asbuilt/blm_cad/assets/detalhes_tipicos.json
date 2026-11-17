@@ -1,0 +1,58 @@
+{
+ "BLM_DET_01": {
+  "numero": 1,
+  "titulo": "DESCIDA APARENTE COM BARRA CHATA DE ALUMÍNIO 7/8\"x1/8\"",
+  "larg": 53117.50911756354,
+  "alt": 68207.56987903696,
+  "n": 758
+ },
+ "BLM_DET_05": {
+  "numero": 5,
+  "titulo": "INSTALAÇÃO DO MINICAPTOR E BARRA CHATA DE ALUMÍNIO NA ALVENARIA",
+  "larg": 62600.39470497149,
+  "alt": 53084.03836079419,
+  "n": 690
+ },
+ "BLM_DET_03": {
+  "numero": 3,
+  "titulo": "PILAR METÁLICO COMO DESCIDA NATURAL E MALHA DE ATERRAMENTO",
+  "larg": 62422.76014336306,
+  "alt": 66629.05160561723,
+  "n": 685
+ },
+ "BLM_DET_07": {
+  "numero": 7,
+  "titulo": "DESCIDA APARENTE COM CABO DE COBRE NU 35 mm²",
+  "larg": 43644.68770758834,
+  "alt": 65468.569689491254,
+  "n": 446
+ },
+ "BLM_DET_02": {
+  "numero": 2,
+  "titulo": "INSTALAÇÃO DO MINICAPTOR E CABO DE COBRE NU 35 mm² NA ALVENARIA",
+  "larg": 64312.25950620991,
+  "alt": 36442.25322393971,
+  "n": 593
+ },
+ "BLM_DET_06": {
+  "numero": 6,
+  "titulo": "MASTRO CAPTOR COM ESTAIAMENTO RÍGIDO",
+  "larg": 57765.658845232814,
+  "alt": 56403.057292501486,
+  "n": 689
+ },
+ "BLM_DET_04": {
+  "numero": 4,
+  "titulo": "FIXAÇÃO DO TERMINAL AÉREO EM TELHA METÁLICA",
+  "larg": 52173.014350697165,
+  "alt": 51822.98968224636,
+  "n": 263
+ },
+ "BLM_DET_08": {
+  "numero": 8,
+  "titulo": "HASTE E MALHA DE ATERRAMENTO",
+  "larg": 49593.23527024183,
+  "alt": 46624.304291285735,
+  "n": 305
+ }
+}
