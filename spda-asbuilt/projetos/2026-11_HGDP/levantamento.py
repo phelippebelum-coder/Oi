@@ -24,6 +24,13 @@ PROJETO = {
     "excluir_pt": [(985, 435, 1085, 468)],
 }
 
+# Base em DWG (opção --base-dwg): camadas do modelo do desenho do cliente que entram na base.
+# A camada "0" do modelo traz as coberturas/passarelas e divisas internas (a moldura e o carimbo da
+# Santa Casa ficam no layout de papel, que não é lido). "aux" fica de fora (linhas de construção).
+CAMADAS_DWG = ("Predios", "Textos", "Terreno", "Ruas", "Muro", "Vegetação", "Jardim", "0")
+CAMADA_PREDIOS_DWG = "Predios"   # contornos usados no ajuste PDF -> DWG
+PESOS_DWG = {"Predios": 25, "Muro": 18, "Terreno": 18}   # espessura (1/100 mm); demais = da camada
+
 # Edificações com SPDA levantado.
 #   paths  = índice do contorno no PDF da base (cobertura) -> vira a gaiola
 #   mini   = qtde de minicaptores marcados em campo (distribuídos no perímetro)

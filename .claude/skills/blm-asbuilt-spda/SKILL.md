@@ -13,6 +13,7 @@ com `levantamento.py` (dados) e `gerar.py` (copiar do projeto mais parecido).
 1. **Base**: planta do cliente (DWG/PDF vetorial -> `blm_cad/base_pdf.py`) ou, sem planta, contornos traçados
    sobre o print aéreo (ver projeto FB_JD_CONCEICAO). DWG do cliente: converter para DXF com
    `xvfb-run -a ODAFileConverter <dir_in> <dir_out> ACAD2018 DXF 0 1 "*.dwg"`.
+   Com DWG do cliente, usar `blm_cad/base_dwg.py` (`gerar.py --base-dwg`, ver HGDP): base nas coordenadas do DWG, levantamento em pt do PDF convertido por ajuste nos cantos dos prédios; conferir o resíduo impresso e se a camada "0" do modelo tem planta (carimbo do cliente fica no layout de papel).
 2. **Marcações de campo**:
    - folha impressa: X = descida, Δ = captor Franklin (haste), O = minicaptor (projeto HGDP: registro foto->planta);
    - print colorido: azul = Franklin, vermelho = descida, verde = minicaptor, amarelo = gaiola ->

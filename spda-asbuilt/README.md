@@ -11,6 +11,7 @@ Este gerador monta a prancha de as built de SPDA (DXF + PDF) no padrão BLM. Ele
 blm_cad/                 padrão da empresa (vale para todos os projetos)
   folha.py               normas, notas-padrão, camadas, cores, símbolos, carimbo, legenda
   base_pdf.py            importa a planta PDF do cliente como base vetorial
+  base_dwg.py            importa a planta DWG/DXF do cliente como base (camadas escolhidas, janela de recorte, ajuste PDF->DWG)
   vetoriza_logo.py       converte o logo PNG em vetor (hachura) para o carimbo
   assets/                logo
 projetos/<data>_<cliente>/
@@ -26,6 +27,8 @@ pip install ezdxf pymupdf opencv-python-headless numpy
 cd projetos/2026-11_HGDP
 python gerar.py --base /caminho/HGDP-Imp_1.500.pdf
 ```
+
+Base em DWG: acrescente `--base-dwg /caminho/HGDP-Imp_1.500.dwg` (ou .dxf). A base passa a ser o desenho do cliente, nas coordenadas dele, e o levantamento marcado sobre o PDF é convertido por mínimos quadrados nos cantos dos prédios (o resíduo sai no terminal; acima de 0,5 m o gerador para).
 
 ## Ferramentas
 

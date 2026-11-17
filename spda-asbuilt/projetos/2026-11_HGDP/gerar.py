@@ -1,6 +1,11 @@
 """Gera o as built de SPDA do HGDP (DXF + PDF).
 
-Uso:  python gerar.py --base /caminho/HGDP-Imp_1.500.pdf
+Uso:  python gerar.py --base /caminho/HGDP-Imp_1.500.pdf [--base-dwg /caminho/HGDP-Imp_1.500.dwg]
+
+--base      PDF vetorial da implantação: é sobre ele que o levantamento foi marcado (coordenadas em pt).
+--base-dwg  DWG/DXF do cliente (opcional): a base arquitetônica passa a vir do DWG, nas coordenadas
+            do DWG (metros reais). O levantamento é convertido PDF -> DWG por mínimos quadrados
+            sobre os cantos das edificações; sem esta opção a base é a do PDF.
 """
 import argparse
 import math
@@ -13,6 +18,7 @@ sys.path.insert(0, str(AQUI.parents[1]))
 from ezdxf.enums import TextEntityAlignment  # noqa: E402
 
 from blm_cad import folha  # noqa: E402
+from blm_cad.base_dwg import BaseDWG, ajusta_por_contornos  # noqa: E402
 from blm_cad.base_pdf import BasePDF  # noqa: E402
 import levantamento as L  # noqa: E402
 
@@ -93,23 +99,49 @@ def reamostra(poli, n):
 # ---------------------------------------------------------------- principal
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--base", required=True, help="PDF vetorial da implantação")
+    ap.add_argument("--base", required=True, help="PDF vetorial da implantação (referência do levantamento)")
+    ap.add_argument("--base-dwg", help="DWG/DXF do cliente: usa como base arquitetônica no lugar do PDF")
     ap.add_argument("--saida", default=str(AQUI / "saida"))
     args = ap.parse_args()
     P = L.PROJETO
     base = BasePDF(args.base, P["escala"])
-    K = base.k
     doc = folha.novo_documento()
     msp = doc.modelspace()
 
-    nb = base.desenha(msp, "ARQ-BASE", P["janela_pt"], P["excluir_pt"])
-    nt = base.desenha_textos(msp, "ARQ-BASE", P["janela_pt"], folha.ESTILO, P["excluir_pt"])
-    print("base:", nb, "polilinhas,", nt, "textos")
-
-    # contornos das edificações
+    # contornos das edificações (pt do PDF) -> gaiolas e projeção das descidas
     cont = {}
     for chave, e in {**L.EDIF, **L.SEM_SPDA}.items():
         cont[chave] = fecha(anel([q for i in e["paths"] for q in base.contorno(i)]))
+
+    if args.base_dwg:
+        # base do DWG, desenhada nas coordenadas do próprio DWG; levantamento (pt) -> DWG
+        dwg = BaseDWG(args.base_dwg, L.CAMADAS_DWG)
+        T, rel = ajusta_por_contornos({c: [base.m(*q) for q in p] for c, p in cont.items()},
+                                      dwg.polilinhas(L.CAMADA_PREDIOS_DWG))
+        print(f"ajuste PDF->DWG: {T}")
+        print(f"  {rel['n']} pontos homólogos | resíduo RMS {rel['rms']:.3f} m | médio {rel['media']:.3f} m "
+              f"| máx {rel['max']:.3f} m | contornos sem par: {rel['sem_par'] or 'nenhum'}")
+        if rel["rms"] > 0.5 or rel["sem_par"]:
+            raise SystemExit("Ajuste PDF->DWG ruim (resíduo > 0,5 m ou edificação sem par): conferir a base")
+
+        def xy_m(x, y):
+            return T(base.m(x, y))
+    else:
+        xy_m = base.m
+
+    def ret_m(r):
+        """Retângulo em pt (x0, y0, x1, y1; y para baixo) -> metros no modelo (xmin, ymin, xmax, ymax)."""
+        (ax, ay), (bx, by) = xy_m(r[0], r[1]), xy_m(r[2], r[3])
+        return (min(ax, bx), min(ay, by), max(ax, bx), max(ay, by))
+
+    if args.base_dwg:
+        n = dwg.desenha(msp, "ARQ-BASE", ret_m(P["janela_pt"]), excluir=[ret_m(r) for r in P["excluir_pt"]],
+                        estilo=folha.ESTILO, pesos=L.PESOS_DWG)
+        print("base DWG:", ", ".join(f"{v} {k}" for k, v in sorted(n.items())))
+    else:
+        nb = base.desenha(msp, "ARQ-BASE", P["janela_pt"], P["excluir_pt"])
+        nt = base.desenha_textos(msp, "ARQ-BASE", P["janela_pt"], folha.ESTILO, P["excluir_pt"])
+        print("base PDF:", nb, "polilinhas,", nt, "textos")
 
     def edif_mais_proxima(p, chaves):
         return min(chaves, key=lambda c: (0 if dentro(p, cont[c]) else 1, proj_poli(p, cont[c])[0]))
@@ -119,13 +151,13 @@ def main():
     for c, e in L.EDIF.items():
         poli = cont[c]
         if e.get("gaiola", True) and e["mini"] > 0:
-            msp.add_lwpolyline([base.m(*q) for q in poli], close=True,
+            msp.add_lwpolyline([xy_m(*q) for q in poli], close=True,
                                dxfattribs={"layer": "SPDA-CAPTACAO-GAIOLA"})
             for q in reamostra(poli, e["mini"]):
-                folha.insere(msp, "BLM_MINICAPTOR", base.m(*q), "SPDA-CAPTACAO-MINICAPTOR")
+                folha.insere(msp, "BLM_MINICAPTOR", xy_m(*q), "SPDA-CAPTACAO-MINICAPTOR")
             resumo[c]["mini"] += e["mini"]
         for q in e.get("pontos_mini", []):
-            folha.insere(msp, "BLM_MINICAPTOR", base.m(*q), "SPDA-CAPTACAO-MINICAPTOR")
+            folha.insere(msp, "BLM_MINICAPTOR", xy_m(*q), "SPDA-CAPTACAO-MINICAPTOR")
             resumo[c]["mini"] += 1
 
     # --- descidas: projeta na fachada mais próxima, numera por edificação (sentido horário)
@@ -141,7 +173,7 @@ def main():
         pts = sorted(por_edif[c], key=lambda q: (math.degrees(math.atan2(q[1] - cy, q[0] - cx)) + 135) % 360)
         for q in pts:
             n += 1
-            xy = base.m(*q)
+            xy = xy_m(*q)
             desc_m.append(xy)
             folha.insere(msp, "BLM_DESCIDA", xy, "SPDA-DESCIDA")
             vx, vy = q[0] - cx, q[1] - cy
@@ -178,11 +210,11 @@ def main():
         poli = cont[c]
         d, q = proj_poli(p, poli)
         alvo = q if (not dentro(p, poli) or d < 6) else p
-        xy = base.m(*alvo)
+        xy = xy_m(*alvo)
         # afasta de descida coincidente
         for dx, dy in desc_m:
             if math.dist(xy, (dx, dy)) < 1.9:
-                cx, cy = base.m(*centroide(poli))
+                cx, cy = xy_m(*centroide(poli))
                 v = (cx - xy[0], cy - xy[1]); l = math.hypot(*v) or 1
                 xy = (xy[0] + 2.0 * v[0] / l, xy[1] + 2.0 * v[1] / l)
         folha.insere(msp, "BLM_FRANKLIN", xy, "SPDA-CAPTACAO-FRANKLIN")
@@ -195,13 +227,13 @@ def main():
         poli = cont[c]
         h = msp.add_hatch(dxfattribs={"layer": "SPDA-SEM-SPDA"})
         h.set_pattern_fill("ANSI31", scale=0.35)
-        h.paths.add_polyline_path([base.m(*q) for q in poli], is_closed=True)
-        cx, cy = base.m(*centroide(poli))
+        h.paths.add_polyline_path([xy_m(*q) for q in poli], is_closed=True)
+        cx, cy = xy_m(*centroide(poli))
         folha.texto(msp, "SEM SPDA", (cx, cy - 2.5), 1.6, "SPDA-SEM-SPDA", TextEntityAlignment.MIDDLE_CENTER)
     for q in L.COBERTURAS_SEM_SPDA:
-        folha.texto(msp, "(SEM SPDA)", base.m(*q), 0.9, "SPDA-SEM-SPDA", TextEntityAlignment.MIDDLE_LEFT)
+        folha.texto(msp, "(SEM SPDA)", xy_m(*q), 0.9, "SPDA-SEM-SPDA", TextEntityAlignment.MIDDLE_LEFT)
     for q, s, h in L.TEXTOS:
-        folha.texto(msp, s, base.m(*q), h, "SPDA-TEXTO", TextEntityAlignment.MIDDLE_CENTER)
+        folha.texto(msp, s, xy_m(*q), h, "SPDA-TEXTO", TextEntityAlignment.MIDDLE_CENTER)
 
     # --- quadro resumo
     quadro = [["EDIFICAÇÃO", "DESCIDAS", "FRANKLIN", "MINICAPT.", "SITUAÇÃO"]]
@@ -246,8 +278,7 @@ def main():
         folha.ItemLegenda("linha", "BASE ARQUITETÔNICA (FORNECIDA PELO CLIENTE)", camada="ARQ-BASE"),
     ]
 
-    jx0, jy1 = base.m(*P["janela_pt"][:2])
-    jx1, jy0 = base.m(*P["janela_pt"][2:])
+    jx0, jy0, jx1, jy1 = ret_m(P["janela_pt"])
     car = folha.Carimbo(codigo=f"{P['codigo']}_R{int(P['revisao']):02d}", titulo=P["titulo"],
                         cliente=P["cliente"], escala=f"1:{P['escala']}", data=P["data"],
                         revisao=P["revisao"], folha=f"{P['formato']} - 01/01",
