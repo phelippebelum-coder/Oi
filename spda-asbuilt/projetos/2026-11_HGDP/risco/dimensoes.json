@@ -1,0 +1,140 @@
+{
+ "FARM": {
+  "nome": "FARMÁCIA",
+  "L": 78.0,
+  "W": 23.8,
+  "area": 1796
+ },
+ "RES": {
+  "nome": "RES. IRMÃS/T.O./S.N.D./SALAS DIV.",
+  "L": 104.0,
+  "W": 19.7,
+  "area": 1146
+ },
+ "SESMT": {
+  "nome": "SESMT/RES. IRMÃS/VELÓRIO",
+  "L": 32.4,
+  "W": 11.9,
+  "area": 324
+ },
+ "U1920": {
+  "nome": "UNID. 19 E 20",
+  "L": 35.7,
+  "W": 12.7,
+  "area": 356
+ },
+ "U1617": {
+  "nome": "UNID. 16 E 17",
+  "L": 35.7,
+  "W": 12.6,
+  "area": 356
+ },
+ "U1314": {
+  "nome": "UNID. 13 E 14",
+  "L": 35.7,
+  "W": 12.7,
+  "area": 356
+ },
+ "U1112": {
+  "nome": "UNID. 11 E 12",
+  "L": 35.7,
+  "W": 12.7,
+  "area": 356
+ },
+ "U23": {
+  "nome": "UNID. 23",
+  "L": 22.3,
+  "W": 13.8,
+  "area": 277
+ },
+ "ADM": {
+  "nome": "ADMINISTRAÇÃO/UNID. 23",
+  "L": 32.6,
+  "W": 12.7,
+  "area": 413
+ },
+ "U1522": {
+  "nome": "UNID. 15, 18, 21 E 22",
+  "L": 79.7,
+  "W": 40.6,
+  "area": 2208
+ },
+ "CAP": {
+  "nome": "CAPELA",
+  "L": 28.0,
+  "W": 14.0,
+  "area": 277
+ },
+ "U0708": {
+  "nome": "UNID. 07 E 08",
+  "L": 35.8,
+  "W": 12.7,
+  "area": 357
+ },
+ "U0506": {
+  "nome": "UNID. 05 E 06",
+  "L": 43.4,
+  "W": 19.0,
+  "area": 503
+ },
+ "U0304": {
+  "nome": "UNID. 03 E 04",
+  "L": 35.8,
+  "W": 12.7,
+  "area": 357
+ },
+ "U0102": {
+  "nome": "UNID. 01 E 02",
+  "L": 43.4,
+  "W": 19.0,
+  "area": 503
+ },
+ "U09": {
+  "nome": "UNID. 09",
+  "L": 46.3,
+  "W": 18.7,
+  "area": 638
+ },
+ "CRE": {
+  "nome": "CRECHE",
+  "L": 48.9,
+  "W": 19.6,
+  "area": 791
+ },
+ "PORT2": {
+  "nome": "PORTARIA 2",
+  "L": 22.3,
+  "W": 15.0,
+  "area": 210
+ },
+ "PORTE": {
+  "nome": "PORTARIA (ESQ.)",
+  "L": 11.0,
+  "W": 9.0,
+  "area": 99
+ },
+ "PORTD": {
+  "nome": "PORTARIA (DIR.)",
+  "L": 11.0,
+  "W": 9.0,
+  "area": 99
+ },
+ "AMB": {
+  "nome": "AMBULATÓRIO/CONS. DENTÁRIO",
+  "L": 59.7,
+  "W": 46.5,
+  "area": 2531
+ },
+ "CARP": {
+  "nome": "CARPINTARIA",
+  "L": 24.0,
+  "W": 7.0,
+  "area": 168
+ },
+ "SAL2": {
+  "nome": "SALÃO DE FESTAS/VELÓRIO",
+  "L": 31.1,
+  "W": 14.5,
+  "area": 407
+ }
+}
