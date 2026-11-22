@@ -210,6 +210,7 @@ class ItemLegenda:
     descricao: str
     bloco: str = ""
     camada: str = ""
+    escala: float = 3.0
 
 
 def _barra(psp, x0, x1, y, titulo):
@@ -222,7 +223,8 @@ def _barra(psp, x0, x1, y, titulo):
 
 def prancha(doc, formato, carimbo: Carimbo, notas: list[str], legenda: list[ItemLegenda],
             quadro: list[list[str]] | None, janela_modelo, escala_den: int, nome_layout=None,
-            larg_coluna=200, faixa_inferior=0.0, quadros_extra=(), detalhes=()):
+            larg_coluna=200, faixa_inferior=0.0, quadros_extra=(), detalhes=(), normas=None,
+            titulo_legenda="LEGENDA (EXISTENTE - AS BUILT)"):
     """quadros_extra: [(titulo, linhas, larguras_relativas, colunas_alinhadas_a_esquerda)]"""
     """Cria o layout (paperspace) com moldura, coluna lateral BLM e viewport do modelo.
 
@@ -266,7 +268,7 @@ def prancha(doc, formato, carimbo: Carimbo, notas: list[str], legenda: list[Item
     # --- normas
     y = _barra(psp, cx0, x1, y, "REFERÊNCIAS NORMATIVAS")
     yy = y - 4.2
-    for n in NORMAS:
+    for n in (normas or NORMAS):
         texto(psp, n, (cl, yy), 2.3)
         yy -= 4.2
     y = yy - 1.5
@@ -280,12 +282,12 @@ def prancha(doc, formato, carimbo: Carimbo, notas: list[str], legenda: list[Item
         yy -= nlin * hn * 1.67 + 1.8
     y = yy - 1
     # --- legenda
-    y = _barra(psp, cx0, x1, y, "LEGENDA (EXISTENTE - AS BUILT)")
+    y = _barra(psp, cx0, x1, y, titulo_legenda)
     yy = y - 6
     for it in legenda:
         sx = cl + 8
         if it.tipo == "bloco":
-            insere(psp, it.bloco, (sx, yy), it.camada, escala=3.0)
+            insere(psp, it.bloco, (sx, yy), it.camada, escala=it.escala)
         elif it.tipo == "linha":
             psp.add_line((cl + 1, yy), (cl + 15, yy), dxfattribs={"layer": it.camada})
         elif it.tipo == "hachura":
