@@ -72,11 +72,12 @@ async def laco():
     while True:
         try:
             await processador.retomar_pendentes()
-            if config.LEMBRETES_ATIVOS:
-                await lembretes()
-            await pagamentos()
-            if config.FOLLOWUP_ATIVO:
-                await followups()
+            if not processador.aurora_pausada():  # pausada: nenhuma mensagem automática para clientes
+                if config.LEMBRETES_ATIVOS:
+                    await lembretes()
+                await pagamentos()
+                if config.FOLLOWUP_ATIVO:
+                    await followups()
             await relatorio.relatorio_diario_se_for_hora()
         except Exception:
             log.exception("Erro nas rotinas")

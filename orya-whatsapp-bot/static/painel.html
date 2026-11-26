@@ -54,6 +54,7 @@
   <button data-aba="fotos">Antes e depois</button>
   <button data-aba="importar">Importar / exportar</button>
 </nav>
+<div id="faixaAurora" style="padding:10px 16px;font-weight:600;display:flex;gap:12px;align-items:center;flex-wrap:wrap"></div>
 <main>
   <section id="aba-leads" class="cartao">
     <div class="resumo" id="resumo"></div>
@@ -230,7 +231,22 @@ $('#btnLeads').onclick = async () => {
   carregar();
 };
 
+async function estadoAurora() {
+  const e = await (await fetch('/api/aurora')).json();
+  const f = $('#faixaAurora');
+  f.style.background = e.pausada ? '#f8d7da' : '#d4edda';
+  f.innerHTML = e.pausada
+    ? `⏸ Aurora PAUSADA: não responde nem manda mensagens automáticas para nenhuma cliente. <button class="acao" onclick="mudarAurora(false)">▶ Liberar a Aurora</button>`
+    : `▶ Aurora atendendo no WhatsApp. <button class="acao sec" onclick="mudarAurora(true)">⏸ Pausar a Aurora para todas</button>`;
+}
+async function mudarAurora(pausar) {
+  if (!confirm(pausar ? 'Pausar a Aurora para TODAS as clientes?' : 'Liberar a Aurora para voltar a atender as clientes?')) return;
+  await fetch('/api/aurora', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ pausada: pausar }) });
+  estadoAurora();
+}
+
 async function carregar() {
+  estadoAurora();
   contatos = await (await fetch('/api/contatos')).json();
   renderLeads();
   if (!$('#aba-agenda').hidden) renderAgenda();

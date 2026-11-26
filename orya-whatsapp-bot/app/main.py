@@ -93,6 +93,23 @@ class MsgTeste(BaseModel):
     anuncio: str | None = None
 
 
+class EstadoAurora(BaseModel):
+    pausada: bool
+
+
+@app.get("/api/aurora", dependencies=[Depends(autenticar)])
+async def estado_aurora():
+    return {"pausada": processador.aurora_pausada()}
+
+
+@app.post("/api/aurora", dependencies=[Depends(autenticar)])
+async def mudar_aurora(e: EstadoAurora):
+    """Interruptor geral: pausa ou libera a Aurora para todas as clientes."""
+    db.definir_meta("aurora_pausada", "1" if e.pausada else "0")
+    log.warning("Aurora %s pelo painel", "PAUSADA" if e.pausada else "LIBERADA")
+    return {"pausada": processador.aurora_pausada()}
+
+
 @app.get("/api/google/status", dependencies=[Depends(autenticar)])
 async def google_status():
     """Confere se a Aurora consegue ler a agenda da Dra."""

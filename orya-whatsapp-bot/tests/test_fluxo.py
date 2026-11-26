@@ -24,6 +24,7 @@ def ambiente(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "RESPONDER_A_PARTIR_DE", (0, 0))  # testes rodam a qualquer hora
     monkeypatch.setattr(config, "WHATSAPP_TOKEN", "")
     db.iniciar()
+    db.definir_meta("aurora_pausada", "0")
     processador._timers.clear()
     processador._travas.clear()
 
@@ -819,3 +820,19 @@ def test_devolver_para_o_bot_responde_a_ultima_mensagem(monkeypatch):
     # última mensagem da equipe: a Aurora só espera
     db.registrar_conversa(tel, "equipe", "Te mando as opções já já")
     assert asyncio.run(processador.assumir_conversa(tel)) is False
+
+
+def test_interruptor_geral_pausa_todas_as_clientes():
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    tel = "5511955554444"
+    db.garantir_contato(tel)
+    with TestClient(app) as cli:
+        assert cli.post("/api/aurora", json={"pausada": True}).json() == {"pausada": True}
+        assert processador.bot_pausado(db.obter_contato(tel))
+        assert not processador.bot_pausado(db.garantir_contato("teste-x", "teste"))  # página de teste segue
+        assert cli.post("/api/aurora", json={"pausada": False}).json() == {"pausada": False}
+        assert not processador.bot_pausado(db.obter_contato(tel))
+    db.definir_meta("aurora_pausada", "")
+    assert processador.aurora_pausada()  # sem valor válido: pausada por segurança

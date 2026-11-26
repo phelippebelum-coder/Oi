@@ -21,8 +21,16 @@ _ultimo_id: dict[str, str] = {}
 IMAGENS_SUPORTADAS = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 
 
+def aurora_pausada() -> bool:
+    """Interruptor geral (painel): pausada, a Aurora não fala com nenhuma cliente no WhatsApp.
+    Sem valor gravado conta como pausada, para nunca voltar a falar sozinha depois de um reinício."""
+    return db.obter_meta("aurora_pausada") != "0"
+
+
 def bot_pausado(contato: dict) -> bool:
     if contato["status"] == "opt_out":
+        return True
+    if contato.get("canal") != "teste" and aurora_pausada():
         return True
     ate = contato.get("bot_pausado_ate")
     return bool(ate and datetime.fromisoformat(ate) > db.agora())
